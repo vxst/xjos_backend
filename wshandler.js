@@ -24,24 +24,31 @@ handle['regbin']=function(conn,order,data,mysql,cb){
 		try{
 			req=JSON.parse(data);
 		}catch(e){
+			console.log('regbin.format.error1');
 			cb('JSON FORMAT ERROR');
 			return;
 		}
 		if(typeof(req)!='object'){
+			console.log('regbin.format.error2');
 			cb('JSON FORMAT ERROR');
 			return;
 		}
 		if(typeof(req.handler)!='string'||typeof(req.order)!='string'||typeof(req.data)!='string'){
+			console.log('regbin.format.error3');
 			cb('JSON FORMAT ERROR');
+			return;
 		}
-		conn.bin_ct++;
+//		conn.bin_ct++;
+		conn.bin_ct=0;
 		if(conn.bin_ct==256)
 			conn.bin_ct=0;
-		if(conn,bin_arg[bin_ct]!=undefined){
+		if(conn.bin_arg[conn.bin_ct]!=undefined){
 			cb('ST-Secure-System:Reg Limit Exceed');
 		}
-		conn.bin_arg[bin_ct].order=req.order;
-		conn.bin_arg[bin_ct].data=req.data;
+		conn.bin_arg[conn.bin_ct]={};
+		conn.bin_arg[conn.bin_ct].handler=req.handler;
+		conn.bin_arg[conn.bin_ct].order=req.order;
+		conn.bin_arg[conn.bin_ct].data=req.data;
 		cb(conn.bin_ct);
 	}
 	if(order==='dereg'){
@@ -83,6 +90,11 @@ exports.handle=function(wsstr,conn,mysql,eventbus){
 		var t=wsstr.split('_',2);
 		if(t[1]===undefined)return;
 		var h=t[1].split('.',2);
+		if(t[0]==undefined||h[0]==undefined||h[1]==undefined){
+			conn.sendUTF(t[0]+'_@failed_XJPipeline Error:Happy Birthday!');
+			console.log('ERR:WSHANDLER:'+wsstr);
+			return;
+		}
 		var dt=wsstr.substr(t[0].length+1+h[0].length+1+h[1].length+1);
 		if(handle[h[0]]===undefined){
 			conn.sendUTF(t[0]+'_@failed_XJPipeline Error:Handle Of Service '+h[0]+' is undefined.');
@@ -97,10 +109,11 @@ exports.handle=function(wsstr,conn,mysql,eventbus){
 //	}
 }
 exports.binhandle=function(wsmsg,conn,mysql,eventbus){
-	if(wsmsg.length<1){
+	var k=0;
+/*	if(wsmsg.length<1){
 		conn.sendUTF('BIN DATA FORMAT ERROR');
 	}
-	var k=wsmsg[0].readUInt8(0);
+	var k=wsmsg.readUInt8(0);
 	if(conn.bin_arg[k]==undefined){
 		conn.sendUTF('BIN DATA IHANDLER ERROR');
 		return;
@@ -108,8 +121,20 @@ exports.binhandle=function(wsmsg,conn,mysql,eventbus){
 	if(binhandle[conn.bin_arg[k].handler]==undefined){
 		conn.sendUTF('BIN DATA HANDLER ERROR');
 		return;
+	}*/
+	if(conn.bin_arg==undefined){
+		console.log('ERR:BANANAS');
+		return;
 	}
-	binhandle[conn.bin_arg[k].handler](conn.uid,conn.bin_arg[k].order,conn.bin_arg[k].data,wsmsg.split(1),mysql,function(){
+	if(conn.bin_arg[k]==undefined){
+		console.log('ERR:ASAA');
+		return;
+	}
+	if(bhandle[conn.bin_arg[k].handler]==undefined){
+		console.log("ERR:APPLE:"+JSON.stringify(conn.bin_arg[k]));
+		return;
+	}
+	bhandle[conn.bin_arg[k].handler](conn.uid,conn.bin_arg[k].order,conn.bin_arg[k].data,wsmsg,mysql,function(){
 		conn.sendUTF('BIN_'+k+'_ok');
 	});
 }

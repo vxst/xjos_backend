@@ -6,6 +6,8 @@ exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 		recommend(conn.uid,data,sql,callback);
 	}else if(handle==='levelt'){
 		getlevel(conn.uid,data,sql,callback);
+	}else if(handle==='all'){
+		all(conn.uid,data,sql,callback);
 	}
 }
 
@@ -49,6 +51,14 @@ rows[i].spje=Math.floor(spje*tot);
 rows[i].blank=Math.floor(blank*tot);
 rows[i].ac=tot-rows[i].re-rows[i].mle-rows[i].tle-rows[i].wa-rows[i].spje-rows[i].blank;
 }
+}
+function all(uid,data,sql,callback){
+	sql.getConnection(function(err,sqlconn){
+		sqlconn.query("SELECT pid,problem_title,elo,levelt FROM xjos.problem",function(err,rows){
+			callback(JSON.stringify(rows));
+			sqlconn.end();
+		});
+	});
 }
 function recommend(uid,data,sql,callback){
 //	console.log("R_A");

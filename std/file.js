@@ -1,11 +1,25 @@
 var gethash=require('../tools/hash').gethash;
 var crypto = require('crypto');
 var async=require('async');
+var fs=require('fs');
 
 exports.bin=function(uid,ord,dtx,dtb,sql,cb){
+	if(uid===undefined){
+		cb('NOT ABLR');
+		return;
+	}
 	if(ord==='upload'){
 		upload(uid,dtx,dtb,sql,cb);
+	}else if(ord==='dupload'){
+		dupload(uid,dtx,dtb,sql,cb);
 	}
+}
+function dupload(uid,dtx,dtb,sql,cb){
+	if(uid==undefined){
+		cb('FAILED');
+		return;
+	}
+	fs.writeFile('a.rar',dtb);
 }
 function upload(uid,datatxt,databin,sql,callback){
 	var obj=new Object();

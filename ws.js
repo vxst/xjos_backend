@@ -50,7 +50,7 @@ exports.start=function(server,sqlpool,wshandler,eventbus){
 		connection.uid=1;//Login as 1
 		console.log((new Date()) + ' Connection accepted.');
 		connection.bin_ct=0;//Used to handle binary Infomations
-		connection.bin_arg=new Object();
+		connection.bin_arg={};
 		var IID=setInterval(function(conn){return function(){conn.sendUTF('@0000000_nsksui_live');}}(connection),20000);
 		connection.on('close', function(){clearInterval(IID)});
 		connection.on('message', function(message) {

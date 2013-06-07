@@ -92,7 +92,7 @@ function fetch(uid,data,sql,callback){
 				sqlc.end();
 			}
 			cb(err,rows,sqlc);
-		);
+		});
 	},
 	function(rows,sqlc,cb){
 		if(rows.length<1){
@@ -144,3 +144,4 @@ function fetch(uid,data,sql,callback){
 			console.log("ERR-STD-PROBLEMDATA-FETCH:"+err);
 	});
 }
+
