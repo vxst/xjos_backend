@@ -33,21 +33,18 @@ function search(uid,data,sql,callback){
 		});
 }
 function loginwtoken(conn,data,sql,callback){
-	var k=data.split('_',2);
-	if(typeof(k[1])!='string')return;
-	var wantuid=parseInt(k[0]);
-	var mytoken=k[1];
+	var mytoken=data;
 	var myip=conn.remoteAddress;
 	if(mytoken.length!=16)return;
-	if(wantuid==NaN)return;
+//	if(wantuid==NaN)return;
 	sql.getConnection(function(err,sqlconn){
-		sqlconn.query('SELECT uid FROM xjos.login_token WHERE ip='+sqlconn.escape(myip)+' AND uid='+sqlconn.escape(wantuid)+' AND token='+sqlconn.escape(mytoken)+'AND expire>NOW()',
+		sqlconn.query('SELECT uid FROM xjos.login_token WHERE ip='+sqlconn.escape(myip)+' AND token='+sqlconn.escape(mytoken)+'AND expire>NOW()',
 		function(err,rows){
 			if(rows.length>=1){
-				conn.uid=wantuid;
+				conn.uid=rows[0].uid;
 				callback('ok');
 			}else{
-				callback('fuck');
+				callback('nya~');
 			}
 			sqlconn.end();
 		}
@@ -128,38 +125,38 @@ function userinfo(uid,data,sql,cb){
 
 function tryreg(uid,data,sql,callback){
 	async.waterfall([
-		function(callback){
-			var x=notjson.parse(data);
-			if(x===null)
-				callback("JSON_CHECK_FAILED",null);
-			else if(typeof(x)!='object')
-				callback("JSON_OBJ_CHECK_FAILEDA",null);
-			else if(typeof(x.password)!='string'||typeof(x.username)!='string')
-				callback("JSON_OBJ_CHECK_FAILEDB",null);
-			else
-				callback(null,x);
-		},
-		function(saneobj,callback){
-			checkisreg(saneobj.username,sql,
-			function(isreg){
-				if(isreg){
-					callback("ERR_USER_REGED",null);
-				}else{
-					callback(null,saneobj.username,saneobj.password);
-				}
+	function(callback){
+		var x=notjson.parse(data);
+		if(x===null)
+			callback("JSON_CHECK_FAILED",null);
+		else if(typeof(x)!='object')
+			callback("JSON_OBJ_CHECK_FAILEDA",null);
+		else if(typeof(x.password)!='string'||typeof(x.username)!='string')
+			callback("JSON_OBJ_CHECK_FAILEDB",null);
+		else
+			callback(null,x);
+	},
+	function(saneobj,callback){
+		checkisreg(saneobj.username,sql,
+		function(isreg){
+			if(isreg){
+				callback("ERR_USER_REGED",null);
+			}else{
+				callback(null,saneobj.username,saneobj.password);
+			}
+		});
+	},
+	function(username,password,callback){
+		genkey(password,function(ps,pd){callback(null,username,pd,ps);});
+	},
+	function(username,password,password_salt,callback){
+		sql.getConnection(function(err,sqlconn){
+			sqlconn.query('INSERT INTO xjos.user (username,password,password_salt) VALUES('+sqlconn.escape(username)+','+sqlconn.escape(password)+','+sqlconn.escape(password_salt)+')',function(err,rows){
+				sqlconn.end();
+				callback(null,err);
 			});
-		},
-		function(username,password,callback){
-			genkey(password,function(ps,pd){callback(null,username,pd,ps);});
-		},
-		function(username,password,password_salt,callback){
-			sql.getConnection(function(err,sqlconn){
-				sqlconn.query('INSERT INTO xjos.user (username,password,password_salt) VALUES('+sqlconn.escape(username)+','+sqlconn.escape(password)+','+sqlconn.escape(password_salt)+')',function(err,rows){
-					sqlconn.end();
-					callback(null,err);
-				});
-			});
-		}],
+		});
+	}],
 	function(err,info){
 		if(err!=null){
 			callback(err);
@@ -200,7 +197,7 @@ function gentoken(uid,ip,sql,cb){
 			);
 		},
 		function(callback){
-			crypto.pseudoRandomBytes(12,function(ex,buf){callback(null,buf.toString('base64'));});
+			crypto.pseudoRandomBytes(8,function(ex,buf){callback(null,buf.toString('hex'));});
 		},
 		function(token,callback){
 			sql.getConnection(

@@ -46,8 +46,8 @@ exports.start=function(server,sqlpool,wshandler,eventbus){
 		}
 
 		var connection = request.accept('xjpipeline-protocol', request.origin);
-//		connection.uid=undefined;
-		connection.uid=1;//Login as 1
+		connection.uid=undefined;
+//		connection.uid=1;//Login as 1
 		console.log((new Date()) + ' Connection accepted.');
 		connection.bin_ct=0;//Used to handle binary Infomations
 		connection.bin_arg={};

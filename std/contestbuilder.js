@@ -7,6 +7,87 @@ exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 	}
 }
 
+function _getRandomProblem(level,callback){
+	sql.getConnection(function(err,sqlc){
+		sqlc.query('SELECT pid FROM xjos.problem WHERE levelt>'+sqlc.escape(level-5)+' AND levelt<'+sqlc.escape(level+5),function(err,rows){
+			if(err){
+				console.log('STD-CB:XJOS Problem Fetch ERROR');
+				return;
+			}
+			callback(rows[Math.round(Math.random()*rows.length)].pid);
+			sqlc.end();
+		}));
+	});
+}
+function _makeSimpleContest(level,problemct,diff,callback){
+	var s=[],o=[];
+	var pidsz={},pids=[];
+	for(var i=0;i<problemct;i++){
+		o.push(i);
+		s.push(level-problemct*diff+i*2*diff);
+	}
+	async.each(o,function(i,cb){//P!
+		_getRandomProblem(s[i],function(pid){
+			pidsz[i]=pid;
+			cb(null);
+		});
+	},function(err){
+		if(err){
+			console.log('Contest Make Failed');
+			callback(null);
+		}else{
+			for(var i=0;i<problemct;i++){
+				pids.push(pidsz[i]);
+			}
+			callback(pids);
+		}
+	});
+}
+function _checkContest(pids,callback){
+	sql.getConnection(function(err,sqlc){
+		sqlc.query('SELECT count(*) AS ct FROM xjos.problem_ktag JOIN problem_ktag_map ON problem_ktag_map.ptid = problem_ktag.ptid WHERE pid IN('+pids+') GROUP BY type',
+		function(err,rows){
+			if(err){
+				sqlc.end();
+				callback(null);
+			}else{
+				for(var i=0;i<rows.length;i++){
+					if(rows[i].ct>2){
+						sqlc.end();
+						callback(false);
+						return;
+					}
+				}
+				sqlc.end();
+				callback(true);
+			}
+		});
+	})
+}
+function makeContest(level,problemct,diff,callback){
+	var isok=0;
+	if(problemct>5)return;
+	async.until(
+	function(){
+		return isok;
+	},
+	function(callback){
+		_makeSimpleContest(level,problemct,diff,function(pids){
+			if(pids==null){
+				console.log('Contest Can\'t be built; Exiting...');
+			}else{
+				_checkContest(pids,function(ok){
+					isok=ok;
+					callback();
+				});
+			}
+		});
+	},
+	function(){
+		callback(JSON.stringify(pids));
+	});
+}
+
 
 function list(uid,data,sql,callback){
 	if(uid==null){
