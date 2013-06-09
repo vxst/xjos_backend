@@ -63,16 +63,34 @@ function submit(uid,data,sql,callback,eventbus){
 		})
 	}],
 	function(err,zid,zpdidl,sqlc){
-		var ret={sid:zid,datalist:zpdidl};
+		var ret={sid:zid,datalist:zpdidl,datetime:q.datetime};
 		if(err){
 			ret.status='fail';
 		}else{
 			ret.status='ok';
 		}
 		callback(JSON.stringify(ret));
-		eventbus.on('tcp.judge.'+zid,function(dataset){
+		eventbus.on('tcp.judge.'+zid,/*function(dataset){
 			console.log("SK:"+JSON.stringify(dataset));
 			callback(JSON.stringify({sid:zid,problem_data_id:dataset[1],result:dataset[2],time:dataset[3],memory:dataset[4],grade:dataset[5]}));
+		}*/
+		function(dataset){
+			sql.getConnection(function(err,sqlc){
+				if(err){
+					console.log('SUBMIT ERROR:'+err);
+					return;
+				}
+				sqlc.query('SELECT infoboard FROM xjos.submit WHERE sid='+sqlc.escape(zid),function(err,rows){
+					if(err){
+						console.log('STD-SUBMIT-DB ERROR:'+err);
+						sqlc.end();
+						return;
+					}
+					var retobj={'sid':zid,'problem_data_id':dataset[1],'result':dataset[2],'time':dataset[3],'memory':dataset[4],'grade':dataset[5],'infomation':rows[0]['infoboard']};
+					sqlc.end();
+					callback(JSON.stringify(retobj));
+				});
+			});
 		});
 		//sid:pid:uid:result::
 	//	eventbus.on('tcp.judgefinish.'+zid,function(dataset){
