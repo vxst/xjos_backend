@@ -14,12 +14,79 @@ exports.bin=function(uid,ord,dtx,dtb,sql,cb){
 		dupload(uid,dtx,dtb,sql,cb);
 	}
 }
+function makeuuid(callback){
+	crypto.pseudoRandomBytes(12,function(err,buf){
+		if(err){
+			console.log(err);
+			callback(null);
+		}else{
+			callback(buf.toString('hex'));
+		}
+	});
+}
+function makeuniquedir(callback){
+	var dir='';
+	async.waterfall([
+	function(callback){
+		makeuuid(function(uuid){
+			if(uuid==null){
+				callback('Not able to make pseudo random bits');
+				return;
+			}
+			callback(null,uuid);
+		});
+	},
+	function(uuid,callback){
+		dir='/tmp/'+uuid+'/';
+		fs.mkdir(dir,callback);
+	}],
+	function(err){
+		if(err){
+			console.log('MakeUniqueDir Fail:'+err);
+		}else{
+			callback(dir);
+		}
+	});
+}
+function getext(fn){
+	for(var i=fn.length-1;i>=0;i--){
+		if(fn[i]=='.'){
+			return fn.substr(i+1);
+		}
+	}
+	return null;
+}
+
 function dupload(uid,dtx,dtb,sql,cb){
+	var k;
+	console.log('Start DUpload');
+	try{
+		k=JSON.parse(dtx);
+		if(typeof(k.filename)!='string'||k.filesize!=dtb.length||isNaN(k.pid)){
+			cb('DUpload:ERR:JSON_FORMAT_ERROR');
+			console.log('JSON_FORMAT_ERROR');
+			console.log(JSON.stringify(k));
+			console.log(JSON.stringify(dtb.length));
+			return;
+		}
+		if(getext(k.filename)==null){
+			console.log('Need Ext');
+			return;
+		}
+	}catch(e){
+		console.log('DUP:'+e);
+	}
 	if(uid==undefined){
 		cb('FAILED');
+		console.log('Nouid');
 		return;
 	}
-	fs.writeFile('a.rar',dtb);
+	console.log('Hehe');
+	makeuniquedir(function(dir){
+		if(dir!=null)
+			fs.writeFile(dir+k.filename,dtb);
+		console.log('DD:'+dir);
+	});
 }
 function upload(uid,datatxt,databin,sql,callback){
 	var obj=new Object();

@@ -24,7 +24,7 @@ exports.start=function(server,sqlpool,wshandler,eventbus){
 		httpServer: server,
 		autoAcceptConnections: false, //false is needed for security reason in the protocol
 		keepaliveInterval:30000,
-		fragmentationThreshold:65536,
+		fragmentationThreshold:1024*1024*8,
 		maxReceivedMessageSize:1024*1024*8
 	});
 	var connectionpool=new Array();//,counter=0;

@@ -1,10 +1,78 @@
 var notjson=require('./libjson');
 var elopvp=require('./libelo').personvsproblem;
 var async=require('async');
+var xmlparser=require('xml2js').parseString;
 exports.main=function(conn,handle,data,sql,callback,eventbus){//if over 10,use array.
 	if(handle==='submit'){
 		submit(conn.uid,data,sql,callback,eventbus);
+	}else if(handle==='list'){
+		list(conn.uid,data,sql,callback);
+	}else if(handle==='single'){
+		single(conn.uid,data,sql,callback);
 	}
+}
+function list(uid,data,sql,callback){
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('SELECT sid,xjos.problem.pid,problem_title,language,datetime,status,grade FROM xjos.submit INNER JOIN xjos.problem ON xjos.problem.pid=xjos.submit.pid WHERE uid='+sqlc.escape(uid),
+		function(err,rows){
+			if(err){
+				console.log('ERR:STD-SUBMIT-LIST:'+err);
+				callback(err);
+			}else
+			callback(null,JSON.stringify(rows));
+			sqlc.end();
+		});
+	},
+	function(rows,cb){
+		callback(rows);
+		cb();
+	}],
+	function(err){
+		if(err)
+			console.log('ERR:STD-SUBMIT-LIST:'+err);
+	});
+}
+function single(uid,data,sql,callback){
+	if(uid==null){
+		console.log('Unlogin agian');
+		callback('Not login');
+		return;
+	}
+	if(isNaN(data))return;
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,cb){
+		sqlc.query('SELECT problem.problem_title,submit.* FROM xjos.submit INNER JOIN xjos.problem ON xjos.problem.pid=xjos.submit.pid WHERE sid='+sqlc.escape(data)+' AND uid='+sqlc.escape(uid),
+		function(err,rows){
+			if(err){
+				callback('System Error');
+				cb(err);
+			}else if(rows.length<1){
+				callback('{err="no result"}');
+				cb('No result');
+			}else{
+				var cuteobj=rows[0];
+				console.log(cuteobj.result);
+				xmlparser(cuteobj.result,{explicitArray:false},
+				function(err,res){
+					cuteobj.result=res.res.point;
+					callback(JSON.stringify(cuteobj));
+					cb();
+				});
+			}
+			sqlc.end();
+		});
+	}],
+	function(err){
+		if(err)
+			console.log('ERR:STD-SUBMIT-SINGLE:'+err);
+	});
 }
 function submit(uid,data,sql,callback,eventbus){
 	var q=notjson.parse(data);
