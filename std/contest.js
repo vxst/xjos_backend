@@ -4,6 +4,7 @@ exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 		list(conn.uid,data,sql,callback);
 	}else if(handle==='getproblems'){
 		getproblems(conn.uid,data,sql,callback);
+	}else if(handle==='regcontest'){
 	}
 }
 

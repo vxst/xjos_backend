@@ -58,16 +58,41 @@ function single(uid,data,sql,callback){
 				cb('No result');
 			}else{
 				var cuteobj=rows[0];
-				console.log(cuteobj.result);
+	//			console.log(cuteobj.result);
 				xmlparser(cuteobj.result,{explicitArray:false},
 				function(err,res){
 					cuteobj.result=res.res.point;
-					callback(JSON.stringify(cuteobj));
-					cb();
+					cb(null,cuteobj);
 				});
 			}
 			sqlc.end();
 		});
+	},
+	function(cuteobj,callback){
+		sql.getConnection(function(err,sqlc){
+			if(err){
+				callback(err);
+				return;
+			}else{
+				callback(null,cuteobj,sqlc);
+			}
+		});
+	},
+	function(cuteobj,sqlc,callback){
+		sqlc.query('SELECT problem_data_id,problem_data_method,problem_data_score,problem_data_time,problem_data_memory,problem_data_rank,tester FROM xjos.problem_data WHERE pid='+sqlc.escape(cuteobj.pid),
+		function(err,rows){
+			if(err){
+				callback(err);
+				return;
+			}
+			cuteobj.datalist=rows;
+			callback(null,cuteobj);
+			sqlc.end();
+		});
+	},
+	function(cuteobj,cb){
+		callback(JSON.stringify(cuteobj));
+		cb();
 	}],
 	function(err){
 		if(err)
