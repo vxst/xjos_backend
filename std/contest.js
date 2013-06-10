@@ -1,13 +1,34 @@
 var async=require('async');
 exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
+	if(uid==null){
+		return;
+	}
 	if(handle==='list'){
 		list(conn.uid,data,sql,callback);
 	}else if(handle==='getproblems'){
 		getproblems(conn.uid,data,sql,callback);
 	}else if(handle==='regcontest'){
+		regcontest(conn.uid,data,sql,callback);
 	}
 }
 
+function regcontest(uid,data,sql,callback){
+	if(uid==null){
+		console.log('ERR:STD-CONTEST-REGC:Not Login');
+		return;
+	}
+	try{
+		var obj=JSON.stringify(data);
+		if(typeof(obj.cid)!='number'||typeof(obj.type)!='string'||typeof(obj.start_time)|='string'){
+			console.log('ERR');
+			return;
+		}
+		sql.getConnection(function(err,sqlc){
+			
+		})
+	}catch(e){
+	}
+}
 
 function list(uid,data,sql,callback){
 	if(uid==null){
