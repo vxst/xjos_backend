@@ -7,7 +7,7 @@ function etexec(command,callback){
 			console.log('ERRTAR:'+err);
 			callback('failed');
 		}else{
-			callback('ok');
+			callback();
 		}
 	});
 }
@@ -38,6 +38,6 @@ exports.main=function(filepath,to,callback){
 	if(findext(filepath)!=null){
 		filedealer[findext(filepath)](filepath,to,callback);
 	}else{
-		callback('failed');
+		callback('Not found ext type');
 	}
 }

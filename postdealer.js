@@ -1,7 +1,8 @@
 var formidable = require('formidable'),
 	async =	require('async');
 var deal={};
-deal['uploaddata']=require('./post/uploaddate').main;
+deal['uploaddata']=require('./post/uploaddata').main;
+
 function findpath(path,sql,callback){
 	sql.getConnection(function(err,sqlc){
 		if(err){
@@ -22,7 +23,7 @@ function findpath(path,sql,callback){
 		}
 	})
 }
-exports.upload=function(path,response,sql,rawreq,callback){
+exports.main=function(path,response,sql,rawreq,callback){
 	findpath(path,sql,function(err,res){
 		if(err){
 			callback(false);
@@ -30,13 +31,10 @@ exports.upload=function(path,response,sql,rawreq,callback){
 		}
 		try{
 			var k=JSON.parse(res);
-			if(req.method.toLowerCase() != 'post'){
-				throw'Not Post';
-			}
 			if(deal[k.order]!=undefined){
 				var form = new formidable.IncomingForm();
 				form.on('end',function(){
-					deal[k.order](form.path,k);
+					deal[k.order](form.path,k,sql);
 					response.write('ok');
 					callback(true);
 				});

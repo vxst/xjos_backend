@@ -1,5 +1,6 @@
 var formidable = require('formidable'),
-	async =	require('async');
+	async =	require('async'),
+	postdealer = require('./postdealer').main;
 function findpath(path,sql,callback){
 	sql.getConnection(function(err,sqlc){
 		if(err){
@@ -22,28 +23,13 @@ function findpath(path,sql,callback){
 }
 exports.route=function(path,query,response,handle,sql,rawreq){
 //	console.log('Route for path:'+path);
-	findpath(path,sql,function(err,res){
-		if(err){
-			return;
-		}
-		try{
-			var k=JSON.parse(res);
-			if(req.method.toLowerCase() != 'post'){
-				throw'Not Post';
+	if(req.method.toLowerCase()=='post'){
+		postdealer(path,response,sql,rawreq,function(info){
+			if(info!='ok'){
+				console.log('Postdealer returns an error:'+info);
 			}
-			if(k.order=='uploaddata'){
-				var form = new formidable.IncomingForm();
-				form.on('end',function(){
-					response
-				});
-			}
-		}catch(e){
-			console.log(e);
-		}
-	})
-	if(handle[path]===undefined)
-		callpath='NOTFOUND';
-	else
-		callpath=path;
-	handle[callpath](path,query,response);
+		});
+	}else{
+		handle['NOTFOUND'](path,query,response);
+	}
 }
