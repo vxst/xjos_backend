@@ -2,7 +2,7 @@ var https = require("https");
 var fs = require('fs');
 var url = require("url");
 
-exports.start=function(route,handle){
+exports.start=function(route,handle,mysql){
 	var options={	key: fs.readFileSync('keys/xjosdyn.key'),
 			cert: fs.readFileSync('keys/xjosdyn.crt'),
 			ciphers:'RC4',
@@ -11,7 +11,7 @@ exports.start=function(route,handle){
 	var server=https.createServer(options,
 		function(request, response) {
 		response.writeHead(200, {'Content-Type': 'text/plain','Server':'ST Dynamic Server'});
-		route(url.parse(request.url).pathname,url.parse(request.url).query,response,handle);
+		route(url.parse(request.url).pathname,url.parse(request.url).query,response,handle,mysql,request);
 		response.end();
 	});
 //	server.setTimeout(365*24*3600*1000,function(){});

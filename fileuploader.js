@@ -1,5 +1,7 @@
 var formidable = require('formidable'),
 	async =	require('async');
+var deal={};
+deal['uploaddata']=require('./post/uploaddate').main;
 function findpath(path,sql,callback){
 	sql.getConnection(function(err,sqlc){
 		if(err){
@@ -20,10 +22,10 @@ function findpath(path,sql,callback){
 		}
 	})
 }
-exports.route=function(path,query,response,handle,sql,rawreq){
-//	console.log('Route for path:'+path);
+exports.upload=function(path,response,sql,rawreq,callback){
 	findpath(path,sql,function(err,res){
 		if(err){
+			callback(false);
 			return;
 		}
 		try{
@@ -31,19 +33,17 @@ exports.route=function(path,query,response,handle,sql,rawreq){
 			if(req.method.toLowerCase() != 'post'){
 				throw'Not Post';
 			}
-			if(k.order=='uploaddata'){
+			if(deal[k.order]!=undefined){
 				var form = new formidable.IncomingForm();
 				form.on('end',function(){
-					response
+					deal[k.order](form.path,k);
+					response.write('ok');
+					callback(true);
 				});
 			}
 		}catch(e){
 			console.log(e);
+			callback(false);
 		}
-	})
-	if(handle[path]===undefined)
-		callpath='NOTFOUND';
-	else
-		callpath=path;
-	handle[callpath](path,query,response);
+	});
 }

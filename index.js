@@ -14,5 +14,5 @@ var judtcp=require('./jugtcpserver');
 var handle={}
 handle['NOTFOUND']=require('./404').mainfun;
 
-ws.start(server.start(route.route,handle),mysql.pool,wshandler,eventbus);
+ws.start(server.start(route.route,handle,mysql),mysql.pool,wshandler,eventbus);
 judtcp.start(eventbus);
