@@ -23,7 +23,7 @@ function findpath(path,sql,callback){
 }
 exports.route=function(path,query,response,handle,sql,rawreq){
 //	console.log('Route for path:'+path);
-	if(req.method.toLowerCase()=='post'){
+	if(rawreq.method.toLowerCase()=='post'){
 		postdealer(path,response,sql,rawreq,function(info){
 			if(info!='ok'){
 				console.log('Postdealer returns an error:'+info);
