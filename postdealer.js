@@ -34,8 +34,14 @@ exports.main=function(path,response,sql,rawreq,callback){
 			if(deal[k.order]!=undefined){
 				var form = new formidable.IncomingForm();
 				form.on('end',function(){
-					deal[k.order](form.path,k,sql);
-					response.write('ok');
+					deal[k.order](form.path,k,sql,
+					function(errv){
+						if(errv=='ok'){
+							response.write('ok');
+						}else{
+							response.write('err');
+						}
+					});
 					callback(true);
 				});
 			}

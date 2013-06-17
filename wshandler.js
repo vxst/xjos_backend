@@ -13,7 +13,7 @@ handle['ptag']=require('./std/problemktag').main;
 handle['pedit']=require('./std/problemedit').main;
 handle['problemdata']=require('./std/problemdata').main;
 handle['contest']=require('./std/contest').main;
-handle['regpost']=require('./std/postreg').main;
+handle['postreg']=require('./std/postreg').main;
 
 handle['regbin']=function(conn,order,data,mysql,cb){
 	if(conn.uid==undefined){
@@ -83,7 +83,7 @@ function checkstr(wsstr){
 }
 exports.handle=function(wsstr,conn,mysql,eventbus){
 //	try{
-		if(!checkstr(wsstr)&&wsstr!="Thank you for accepting me"){
+		if(!checkstr(wsstr)&&wsstr!=="Thank you for accepting me"){
 			console.log(wsstr);
 			conn.send("UNDEF_STRING_ERROR");
 			return;
@@ -97,6 +97,7 @@ exports.handle=function(wsstr,conn,mysql,eventbus){
 			return;
 		}
 		var dt=wsstr.substr(t[0].length+1+h[0].length+1+h[1].length+1);
+		console.log('Handle '+h[0]+' Fired');
 		if(handle[h[0]]===undefined){
 			conn.sendUTF(t[0]+'_@failed_XJPipeline Error:Handle Of Service '+h[0]+' is undefined.');
 		}else{

@@ -6,7 +6,7 @@ var uncompress=require('../tools/uncompresser').main
 function makeuuid(){
 	return crypto.pseudoRandomBytes(12).toString('hex');
 }
-exports.main=function(path,obj,sql){
+exports.main=function(path,obj,sql,pscb){
 	async.waterfall([
 	function(callback){
 		var uuid=makeuuid();
@@ -48,8 +48,8 @@ exports.main=function(path,obj,sql){
 			},
 			function(sqlc,callback){
 				var inf=excdir+item.input,outf=excdir+item.output;
-				var obj={'problem_data_rank':item.rank,'problem_data_input':fs.readFileSync(inf),'problem_data_output':fs.readFileSync(outf)};
-				sqlc.query('INSERT INTO xjos.problem SET '+sqlc.escape(obj),
+				var t={'problem_data_rank':item.rank,'problem_data_input':fs.readFileSync(inf),'problem_data_output':fs.readFileSync(outf),'pid':obj.pid};
+				sqlc.query('INSERT INTO xjos.problem SET '+sqlc.escape(t),
 				function(err,rows){
 					sqlc.end();
 					if(err){
@@ -73,7 +73,11 @@ exports.main=function(path,obj,sql){
 		});
 	}],
 	function(err){
-		if(err)
+		if(err){
 			console.log('UPDFILEERR:'+err);
+			pscb('err:'+err);
+		}else{
+			pscb('ok');
+		}
 	});
 }
