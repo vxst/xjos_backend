@@ -15,7 +15,7 @@ handle['problemdata']=require('./std/problemdata').main;
 handle['contest']=require('./std/contest').main;
 handle['postreg']=require('./std/postreg').main;
 
-handle['regbin']=function(conn,order,data,mysql,cb){
+/*handle['regbin']=function(conn,order,data,mysql,cb){
 	if(conn.uid==undefined){
 		conn.send('Nothing to reg for unreged user');
 		return;
@@ -60,7 +60,7 @@ handle['regbin']=function(conn,order,data,mysql,cb){
 		conn.bin_arg[regk]=undefined;
 		cb('ok');
 	}
-}
+}*/
 function checkstr(wsstr){
 	var _counterz=-1,_counterp=0;
 	for(var i=0;i<wsstr.length;i++)
@@ -97,7 +97,7 @@ exports.handle=function(wsstr,conn,mysql,eventbus){
 			return;
 		}
 		var dt=wsstr.substr(t[0].length+1+h[0].length+1+h[1].length+1);
-		console.log('Handle '+h[0]+' Fired');
+//		console.log('Handle '+h[0]+' Fired');
 		if(handle[h[0]]===undefined){
 			conn.sendUTF(t[0]+'_@failed_XJPipeline Error:Handle Of Service '+h[0]+' is undefined.');
 		}else{

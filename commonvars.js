@@ -1,1 +1,1 @@
-exports.dynurl='https://dyn.xjos.org'
+exports.dynurl='https://dyn.xjos.org:12701'

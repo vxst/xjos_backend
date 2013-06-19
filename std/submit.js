@@ -2,6 +2,7 @@ var notjson=require('./libjson');
 var elopvp=require('./libelo').personvsproblem;
 var async=require('async');
 var xmlparser=require('xml2js').parseString;
+
 exports.main=function(conn,handle,data,sql,callback,eventbus){//if over 10,use array.
 	if(handle==='submit'){
 		submit(conn.uid,data,sql,callback,eventbus);
@@ -9,6 +10,11 @@ exports.main=function(conn,handle,data,sql,callback,eventbus){//if over 10,use a
 		list(conn.uid,data,sql,callback);
 	}else if(handle==='single'){
 		single(conn.uid,data,sql,callback);
+	}
+}
+function destatus(rows){
+	for(var i=0;i<rows.length;i++){
+		rows[i]['status']=(rows[i]['status']|4096)^4096;
 	}
 }
 function list(uid,data,sql,callback){
@@ -22,8 +28,10 @@ function list(uid,data,sql,callback){
 			if(err){
 				console.log('ERR:STD-SUBMIT-LIST:'+err);
 				callback(err);
-			}else
-			callback(null,JSON.stringify(rows));
+			}else{
+				destatus(rows);
+				callback(null,JSON.stringify(rows));
+			}
 			sqlc.end();
 		});
 	},
@@ -57,6 +65,7 @@ function single(uid,data,sql,callback){
 				callback('{err="no result"}');
 				cb('No result');
 			}else{
+				destatus(rows);
 				var cuteobj=rows[0];
 	//			console.log(cuteobj.result);
 				xmlparser(cuteobj.result,{explicitArray:false},

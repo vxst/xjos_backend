@@ -1,12 +1,14 @@
 var uncompress=require('../tools/uncompresser').main
 	,makepairs=require('../tools/makepairs').main
 	,async=require('async')
-	,fs=require('fs');
+	,fs=require('fs')
+	,crypto=require('crypto');
 
 function makeuuid(){
-	return crypto.pseudoRandomBytes(12).toString('hex');
+	return crypto.pseudoRandomBytes(16).toString('hex');
 }
 exports.main=function(path,obj,sql,pscb){
+	console.log("Papa:"+path);
 	async.waterfall([
 	function(callback){
 		var uuid=makeuuid();
@@ -29,7 +31,7 @@ exports.main=function(path,obj,sql,pscb){
 		});
 	},
 	function(uuid,dir,arcfn,excdir,callback){
-		uncompresser(arcfn,excdir,function(err){
+		uncompress(arcfn,excdir,function(err){
 			callback(err,uuid,dir,excdir);
 		});
 	},
@@ -38,9 +40,10 @@ exports.main=function(path,obj,sql,pscb){
 			callback(err,uuid,dir,excdir,files);
 		});
 	},
-	function(uuid,dir,excdir,files){
+	function(uuid,dir,excdir,files,callback){
 		var p=makepairs(files);
-		async.eachSeris(p,
+		console.log('ITEM:'+JSON.stringify(files));
+		async.eachSeries(p,
 		function(item,callback){
 			async.waterfall([
 			function(callback){
@@ -49,7 +52,7 @@ exports.main=function(path,obj,sql,pscb){
 			function(sqlc,callback){
 				var inf=excdir+item.input,outf=excdir+item.output;
 				var t={'problem_data_rank':item.rank,'problem_data_input':fs.readFileSync(inf),'problem_data_output':fs.readFileSync(outf),'pid':obj.pid};
-				sqlc.query('INSERT INTO xjos.problem SET '+sqlc.escape(t),
+				sqlc.query('INSERT INTO xjos.problem_data SET '+sqlc.escape(t),
 				function(err,rows){
 					sqlc.end();
 					if(err){

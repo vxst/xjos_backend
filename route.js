@@ -1,6 +1,7 @@
 var formidable = require('formidable'),
 	async =	require('async'),
 	postdealer = require('./postdealer').main;
+	postchecker=require('./postdealer').check;
 function findpath(path,sql,callback){
 	sql.getConnection(function(err,sqlc){
 		if(err){
@@ -21,15 +22,27 @@ function findpath(path,sql,callback){
 		}
 	})
 }
-exports.route=function(path,query,response,handle,sql,rawreq){
-//	console.log('Route for path:'+path);
-	if(rawreq.method.toLowerCase()=='post'){
+exports.route=function(path,query,response,handle,sql,rawreq,callback){
+//	console.log('Route for path:'+path+'\nrawreq:'+rawreq['']);
+	if(rawreq.method.toLowerCase()==='options'){
+		postchecker(path,sql,function(istrue){
+			if(istrue){
+				response.writeHead(200, {'Content-Type': 'text/plain','Server':'ST Dynamic Server','Access-Control-Allow-Origin':'https://xjos.org','Access-Control-Allow-Headers':'cache-control, origin, x-requested-with, content-type'});
+			}
+			callback();
+		});
+	}else if(rawreq.method.toLowerCase()==='post'){
 		postdealer(path,response,sql,rawreq,function(info){
 			if(info!='ok'){
 				console.log('Postdealer returns an error:'+info);
+			}else{
+				response.writeHead(200, {'Content-Type': 'text/plain','Server':'ST Dynamic Server','Access-Control-Allow-Origin':'https://xjos.org','Access-Control-Allow-Headers':'cache-control, origin, x-requested-with, content-type'});
+				response.write('{"success":true}');
 			}
+			callback();
 		});
 	}else{
 		handle['NOTFOUND'](path,query,response);
+		callback();
 	}
 }

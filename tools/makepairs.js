@@ -5,8 +5,11 @@ function getnum(filename){
 			end=i+1;flag=1;
 		}
 		if(isNaN(filename[i])&&flag==1){
-			start=i;flag=2;
+			start=i+1;flag=2;
 		}
+	}
+	if(flag==1){
+		start=0;flag=2;
 	}
 	if(flag!=2)
 		return null;
@@ -32,6 +35,7 @@ function remove(filename){
 }
 function makepair(s){
 	var tmpobj={},retarray=[];
+//	console.log(s);
 	for(var i=0;i<s.length;i++){
 		if(!remove(s[i])){
 			var k=getnum(s[i]);
@@ -40,6 +44,7 @@ function makepair(s){
 			tmpobj[k].push(s[i]);
 		}
 	}
+//	console.log(tmpobj);
 	for(var i in tmpobj){
 		tmpobj[i].sort(function(a,b){
 			return(getinout(a)-getinout(b));
@@ -48,4 +53,5 @@ function makepair(s){
 	}
 	return retarray;
 }
+//console.log(makepair(['1.in','1.out']));
 exports.main=makepair;

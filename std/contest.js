@@ -1,6 +1,6 @@
 var async=require('async');
 exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
-	if(uid==null){
+	if(conn.uid==null){
 		return;
 	}
 	if(handle==='list'){
@@ -41,7 +41,7 @@ function list(uid,data,sql,callback){
 			sql.getConnection(cb);
 		},
 		function(sqlc,cb){
-			sqlc.query("SELECT * FROM xjos.contest",function(err,rows){
+			sqlc.query("SELECT cid,name,type,start_time,end_time,TIMEDIFF(end_time,start_time) AS length,((end_time<NOW()) + (start_time<NOW())) AS status,ROUND(RAND()*10) AS level FROM xjos.contest ORDER BY start_time DESC",function(err,rows){
 				if(!err)
 					callback(JSON.stringify(rows));
 				sqlc.end();

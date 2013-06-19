@@ -9,10 +9,13 @@ exports.start=function(route,handle,mysql){
 			passphrase:'t7j8bf9'};
 
 	var server=https.createServer(options,
-		function(request, response) {
+	function(request, response) {
+		console.log('HTTPS REQ');
 		response.writeHead(200, {'Content-Type': 'text/plain','Server':'ST Dynamic Server'});
-		route(url.parse(request.url).pathname,url.parse(request.url).query,response,handle,mysql,request);
-		response.end();
+		route(url.parse(request.url).pathname,url.parse(request.url).query,response,handle,mysql,request,
+		function(err){
+			response.end();
+		});
 	});
 //	server.setTimeout(365*24*3600*1000,function(){});
 	server.timeout=0;

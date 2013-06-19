@@ -70,6 +70,7 @@ function trylogin(conn,data,sql,callback){
 					if(rows.length!=1){
 						sqlconn.end();
 						callback("USER_PASSWORD_NOT_MATCH",null);//DO NOT SHOW WHETHER USER EXIST
+						return;
 					}
 					var salt=rows[0]['password_salt'],pwd=rows[0]['password'],uid=rows[0]['uid'];
 					sqlconn.end();
