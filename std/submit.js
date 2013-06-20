@@ -184,10 +184,7 @@ function submit(uid,data,sql,callback,eventbus){
 			ret.status='ok';
 		}
 		callback(JSON.stringify(ret));
-		eventbus.on('tcp.judge.'+zid,/*function(dataset){
-			console.log("SK:"+JSON.stringify(dataset));
-			callback(JSON.stringify({sid:zid,problem_data_id:dataset[1],result:dataset[2],time:dataset[3],memory:dataset[4],grade:dataset[5]}));
-		}*/
+		eventbus.on('tcp.judge.'+zid,
 		function(dataset){
 			sql.getConnection(function(err,sqlc){
 				if(err){
@@ -206,10 +203,6 @@ function submit(uid,data,sql,callback,eventbus){
 				});
 			});
 		});
-		//sid:pid:uid:result::
-	//	eventbus.on('tcp.judgefinish.'+zid,function(dataset){
-	//		updateelo(dataset[0],dataset[1],dataset[2],dataset[3],sql);
-	//	});
 		sqlc.end();
 	});
 }
