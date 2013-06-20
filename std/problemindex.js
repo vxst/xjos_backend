@@ -129,5 +129,6 @@ function search(uid,data,sql,callback){
 				callback(JSON.stringify(rows));
 				sqlconn.end();
 			});
-		});
+		}
+	});
 }
