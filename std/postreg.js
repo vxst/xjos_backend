@@ -1,20 +1,22 @@
 var async=require('async'),
 	crypto=require('crypto'),
 	vars=require('../commonvars'),
-	c
+	isok=require('../lib/isok').isok;
 exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 	if(conn.uid==null){
 		return;
 	}
 	if(handle==='add'){
-		add(conn.uid,data,sql,callback);
+		isok(conn.uid,'edit_problem',sql,function(isk){
+			if(isk!=0)
+				add(conn.uid,data,sql,callback);
+		});
 	}
 }
 function makeuuid(){
 	return crypto.pseudoRandomBytes(16).toString('hex');
 }
 function add(uid,data,sql,callback){
-	f
 	var postuuid=makeuuid();
 	async.waterfall([
 	function(callback){

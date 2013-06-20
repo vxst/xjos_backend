@@ -1,18 +1,28 @@
-var async=require('async');
+var async=require('async'),
+    isok=require('../lib/isok').isok;
 exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
-	if(handle==='addtag'){
-		addtag(conn.uid,data,sql,callback);
-	}else if(handle==='deltag'){
-		deltag(conn.uid,data,sql,callback);
-	}else if(handle==='gettaglist'){
-		gettaglist(conn.uid,data,sql,callback);
-	}else if(handle==='tagproblem'){
-		tagproblem(conn.uid,data,sql,callback);
-	}else if(handle==='muilttagproblem'){
-		muilttagproblem(conn.uid,data,sql,callback);
-	}else if(handle==='listtags'){
-		listtags(conn.uid,data,sql,callback);
-	}
+	isok(conn.uid,'edit_problem',sql,
+	function(ct){
+		if(ct==0)return;
+		if(handle==='addtag'){
+			addtag(conn.uid,data,sql,callback);
+		}else if(handle==='deltag'){
+			deltag(conn.uid,data,sql,callback);
+		}
+	});
+	isok(conn.uid,'view_problem',sql,
+	function(ct){
+		if(ct==0)return;
+		if(handle==='gettaglist'){
+			gettaglist(conn.uid,data,sql,callback);
+		}else if(handle==='tagproblem'){
+			tagproblem(conn.uid,data,sql,callback);
+		}else if(handle==='muilttagproblem'){
+			muilttagproblem(conn.uid,data,sql,callback);
+		}else if(handle==='listtags'){
+			listtags(conn.uid,data,sql,callback);
+		}
+	});
 }
 
 function gettaglist(uid,data,sql,callback){

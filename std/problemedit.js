@@ -1,8 +1,13 @@
-//FIXIT: escapeId
+var isok=require('../lib/isok').isok;
 exports.main=function(conn,handle,data,sql,callback){
-	if(handle==='edit'){
-		view(conn.uid,data,sql,callback);
-	}
+	isok(conn.uid,'edit_problem',sql,
+	function(ct){
+		if(ct!=0){
+			if(handle==='edit'){
+				view(conn.uid,data,sql,callback);
+			}
+		}
+	});
 }
 function view(uid,data,sql,callback){
 	sql.getConnection(function(err,sqlconn){

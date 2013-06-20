@@ -2,15 +2,27 @@ var notjson=require('./libjson');
 var elopvp=require('./libelo').personvsproblem;
 var async=require('async');
 var xmlparser=require('xml2js').parseString;
+var isok=require('../lib/isok').isok;
 
 exports.main=function(conn,handle,data,sql,callback,eventbus){//if over 10,use array.
-	if(handle==='submit'){
-		submit(conn.uid,data,sql,callback,eventbus);
-	}else if(handle==='list'){
-		list(conn.uid,data,sql,callback);
-	}else if(handle==='single'){
-		single(conn.uid,data,sql,callback);
-	}
+	isok(conn.uid,'submit_problem',sql,
+	function(ct){
+		if(ct==0)return;
+		if(handle==='submit'){
+			submit(conn.uid,data,sql,callback,eventbus);
+		}
+	});
+	isok(conn.uid,'view_problem',sql,
+	function(ct){
+		if(ct==0)return;
+		if(handle==='list'){
+			list(conn.uid,data,sql,callback);
+		}else if(handle==='single'){
+			single(conn.uid,data,sql,callback);
+		}else if(handle==='muiltiply'){
+			muiltiply(conn.uid,data,sql,callback);
+		}
+	});
 }
 function destatus(rows){
 	for(var i=0;i<rows.length;i++){

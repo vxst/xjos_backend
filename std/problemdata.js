@@ -1,16 +1,27 @@
-var async=require('async');
+var async=require('async'),
+	isok=require('../lib/isok').isok;
 exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
-	if(handle==='list'){
-		list(conn.uid,data,sql,callback);
-	}else if(handle==='fetch'){
-		fetch(conn.uid,data,sql,callback);
-	}else if(handle==='edit'){
-		edit(conn.uid,data,sql,callback);
-	}else if(handle==='delete'){
-		del(conn.uid,data,sql,callback);
-	}else if(handle==='add'){
-		iadd(conn.uid,data,sql,callback);
-	}
+	isok(conn.uid,'edit_problem',sql,
+	function(isk){
+		if(isk==0)return;
+		if(handle==='fetch'){
+			fetch(conn.uid,data,sql,callback);
+		}else if(handle==='edit'){
+			edit(conn.uid,data,sql,callback);
+		}else if(handle==='delete'){
+			del(conn.uid,data,sql,callback);
+		}else if(handle==='add'){
+			iadd(conn.uid,data,sql,callback);
+		}
+	});
+	isok(conn.uid,'view_problem',sql,
+	function(isk){
+		if(isk!=0){
+			if(handle==='list'){
+				list(conn.uid,data,sql,callback);
+			}
+		}
+	});
 }
 function del(uid,data,sql,callback){
 	if(uid==null){

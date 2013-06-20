@@ -36,7 +36,7 @@ function loginwtoken(conn,data,sql,callback){
 	var mytoken=data;
 	var myip=conn.remoteAddress;
 	if(mytoken.length!=16)return;
-//	if(wantuid==NaN)return;
+
 	sql.getConnection(function(err,sqlconn){
 		sqlconn.query('SELECT uid FROM xjos.login_token WHERE ip='+sqlconn.escape(myip)+' AND token='+sqlconn.escape(mytoken)+'AND expire>NOW()',
 		function(err,rows){
