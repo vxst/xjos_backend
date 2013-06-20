@@ -24,8 +24,9 @@ exports.start=function(server,sqlpool,wshandler,eventbus){
 		httpServer: server,
 		autoAcceptConnections: false, //false is needed for security reason in the protocol
 		keepaliveInterval:30000,
-		fragmentationThreshold:1024*1024*8,
-		maxReceivedMessageSize:1024*1024*8
+		fragmentationThreshold:64*1024,
+		maxReceivedMessageSize:16*1024*1024,
+		maxReceivedFrameSize:1024*1024*16
 	});
 	var connectionpool=new Array();//,counter=0;
 	wsServer.on('request', function(request) {
@@ -64,7 +65,7 @@ exports.start=function(server,sqlpool,wshandler,eventbus){
 			}
 		});
 		connection.on('close', function(reasonCode, description) {
-			console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
+			console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected:'+reasonCode+':'+description);
 		});
 		connectionpool.push(connection);
 	});

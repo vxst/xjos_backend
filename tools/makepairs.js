@@ -16,16 +16,16 @@ function getnum(filename){
 	return filename.substring(start,end);
 }
 var inword=['in','st'];
-var outword=['out','ans','nsk'];
+var outword=['out','ans','nsk','ou'];
 function getinout(filename){
 	var value=0;
 	for(var i=0;i<inword.length;i++){
-		if(filename.indexOf(inword[i])!=-1){
+		if(filename.toLowerCase().indexOf(inword[i])!=-1){
 			value--;
 		}
 	}
 	for(var i=0;i<outword.length;i++){
-		if(filename.indexOf(outword[i])!=-1){
+		if(filename.toLowerCase().indexOf(outword[i])!=-1){
 			value++;
 		}
 	}

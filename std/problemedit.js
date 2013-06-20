@@ -6,7 +6,7 @@ exports.main=function(conn,handle,data,sql,callback){
 }
 function view(uid,data,sql,callback){
 	sql.getConnection(function(err,sqlconn){
-		var p;
+		var p={};
 		try{
 			p=JSON.parse(data);
 			if(typeof(p)!='object'){
@@ -17,7 +17,9 @@ function view(uid,data,sql,callback){
 		}
 //		console.log(p['myid']);
 //		console.log("UPDATE xjos.problem SET "+p['myid']+'='+sqlconn.escape(p.data)+' WHERE pid='+sqlconn.escape(p.pid));
-		sqlconn.query("UPDATE xjos.problem SET "+p['myid']+'='+sqlconn.escape(p.data)+' WHERE pid='+sqlconn.escape(p.pid),function(err,rows){//DANGEROUS
+		var obj={};
+		obj[p.myid]=p.data;
+		sqlconn.query("UPDATE xjos.problem SET "+sqlconn.escape(obj)+' WHERE pid='+sqlconn.escape(p.pid),function(err,rows){
 			if(!err)
 				callback('ok');
 			else

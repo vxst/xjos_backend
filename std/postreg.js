@@ -1,6 +1,7 @@
 var async=require('async'),
-	crypto=require('crypto')
-	vars=require('../commonvars');
+	crypto=require('crypto'),
+	vars=require('../commonvars'),
+	c
 exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 	if(conn.uid==null){
 		return;
@@ -13,6 +14,7 @@ function makeuuid(){
 	return crypto.pseudoRandomBytes(16).toString('hex');
 }
 function add(uid,data,sql,callback){
+	f
 	var postuuid=makeuuid();
 	async.waterfall([
 	function(callback){
