@@ -66,6 +66,11 @@ function trylogin(conn,data,sql,callback){
 		},
 		function(saneobj,callback){
 			sql.getConnection(function(err,sqlconn){
+				if(err){
+					callback('ERR');
+					console.log('SQL Error');
+					return;
+				}
 				sqlconn.query("SELECT uid,password,password_salt FROM xjos.user WHERE username="+sqlconn.escape(saneobj.username),function(err,rows){
 					if(rows.length!=1){
 						sqlconn.end();
@@ -190,7 +195,8 @@ function gentoken(uid,ip,sql,cb){
 			sql.getConnection(
 			function(err,sqlconn){
 				sqlconn.query("DELETE FROM xjos.login_token WHERE uid="+sqlconn.escape(uid),function(err,rows){
-					console.log(err);
+					if(err)
+						console.log('Remove login token error:'+err);
 					sqlconn.end();
 					callback();
 				});

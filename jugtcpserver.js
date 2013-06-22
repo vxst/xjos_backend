@@ -1,8 +1,8 @@
 exports.start=function(eventbus){
 	require('net').createServer(function(c){
-		console.log('server connected');
+//		console.log('server connected');
 		c.on('end', function() {
-			console.log('server disconnected');
+//			console.log('server disconnected');
 		});
 		c.on('data',function(s){
 			s=s.toString();

@@ -9,10 +9,22 @@ exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 		info(conn.uid,data,sql,callback);
 	}else if(handle==='regcontest'){
 		regcontest(conn.uid,data,sql,callback);
+	}else if(handle==='delete'){
+		deletecontest(conn.uid,data,sql,callback);
 	}
 }
 
-function regcontest(uid,data,sql,callback){
+function deletecontest(uid,data,sql,callback){//S0
+	try{
+		if(isNaN(data)){
+			callback('Not an apple');
+			console.log('Delete Contest Error:D001');
+			return;
+		}
+	}catch(e){
+	}
+}
+function regcontest(uid,data,sql,callback){//S1
 	if(uid==null){
 		console.log('ERR:STD-CONTEST-REGC:Not Login');
 		return;
@@ -23,6 +35,7 @@ function regcontest(uid,data,sql,callback){
 			console.log('ERR');
 			return;
 		}
+		obj.start_time.setTime(obj.start_time.getTime()+8*3600*1000);
 		var mkobk={'cid':obj.cid,'type':obj.type,'uid':uid,'start_time':obj.start_time,'reg_time':new Date()};
 		async.waterfall([
 		function(callback){
@@ -48,7 +61,7 @@ function regcontest(uid,data,sql,callback){
 	}
 }
 
-function list(uid,data,sql,callback){
+function list(uid,data,sql,callback){//S2
 	if(uid==null){
 		console.log("ERR:STD-CONTEST-LIST:Not Login");
 		return;
@@ -128,7 +141,7 @@ function list(uid,data,sql,callback){
 		}
 	}
 }
-function info(uid,data,sql,callback){
+function info(uid,data,sql,callback){//S2
 	if(uid==null){
 		console.log("ERR:STD-CONTEST-GETP:Not Login");
 		return;

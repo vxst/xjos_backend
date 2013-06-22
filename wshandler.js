@@ -84,13 +84,14 @@ function checkstr(wsstr){
 exports.handle=function(wsstr,conn,mysql,eventbus){
 //	try{
 		if(!checkstr(wsstr)&&wsstr!=="Thank you for accepting me"){
-			console.log(wsstr);
+			console.log('Unknown WS Order:'+wsstr);
 			conn.send("UNDEF_STRING_ERROR");
 			return;
 		}
 		var t=wsstr.split('_',2);
 		if(t[1]===undefined)return;
 		var h=t[1].split('.',2);
+		//console.log(h);
 		if(t[0]==undefined||h[0]==undefined||h[1]==undefined){
 			conn.sendUTF(t[0]+'_@failed_XJPipeline Error:Happy Birthday!');
 			console.log('ERR:WSHANDLER:'+wsstr);

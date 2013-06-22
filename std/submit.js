@@ -24,13 +24,13 @@ exports.main=function(conn,handle,data,sql,callback,eventbus){//if over 10,use a
 		}
 	});
 }
-function findcontest(uid,pid,sql,callback){
+function findcontest(uid,pid,sql,callback){//S1
 	async.waterfall([
 	function(callback){
 		sql.getConnection(callback);
 	},
 	function(sqlc,callback){
-		sqlc.query('SELECT cid FROM xjos.user_contest INNER JOIN contest_problem ON user_contest.cid=contest_problem.cid WHERE contest_problem.pid='+sqlc.escape(pid)+' AND user_contest.uid='+sqlc.escape(uid)+' AND user_contest.start_time<NOW() AND user_contest.end_time>NOW()',
+		sqlc.query('SELECT user_contest.cid,contest.type FROM xjos.user_contest NATURAL JOIN xjos.contest_problem,xjos.contest WHERE contest_problem.pid='+sqlc.escape(pid)+' AND user_contest.uid='+sqlc.escape(uid)+' AND user_contest.start_time<NOW() AND user_contest.end_time>NOW()',
 		function(err,rows){
 			callback(err,rows);
 			sqlc.end();
@@ -39,20 +39,18 @@ function findcontest(uid,pid,sql,callback){
 	function(err,rows){
 		if(err){
 			callback(null);
+			console.log('Find Contest:'+err);
 		}else{
 			callback(rows);
 		}
-	})
+	});
 }
-function isabletoreturnstatus(cid){
-	return false;
-}
-function destatus(rows){
+function destatus(rows){//S2
 	for(var i=0;i<rows.length;i++){
 		rows[i]['status']=(rows[i]['status']|4096)^4096;
 	}
 }
-function list(uid,data,sql,callback){
+function list(uid,data,sql,callback){//S2
 	async.waterfall([
 	function(callback){
 		sql.getConnection(callback);
@@ -156,46 +154,24 @@ function single(uid,data,sql,callback){
 			console.log('ERR:STD-SUBMIT-SINGLE:'+err);
 	});
 }
-function submit(uid,data,sql,callback,eventbus){
+function submit(uid,data,sql,callback,eventbus){//S2
 	var q=notjson.parse(data);
-	if(typeof(q)!='object'){
-		callback('Json errorA');
-		return;
-	}
 	q.pid=parseInt(q.pid);
-	if(q.pid==NaN){
-		callback('Json errorC');
-		return;
-	}
 	q.language=parseInt(q.language);
-	if(q.language==NaN){
-		callback('Json errorD');
-		return;
-	}
-	console.log(typeof(q.pid));
-	console.log(typeof(q.language));
-	console.log(typeof(q.source));
-	if(typeof(q.pid)!='number'||typeof(q.language)!='number'||typeof(q.source)!='string'){
-		callback('Json errorB');
-		return;
-	}
-	for(k in q){
-		if(k!='pid'&&k!='language'&&k!='source'){
-			console.log('Submit Error:'+JSON.stringify(q));
-			return;
-		}
-	}
 
-	q.datetime=new Date();
-	q.uid=uid;
+	if(typeof(q.pid)!='number'||typeof(q.language)!='number'||typeof(q.source)!='string'){
+		console.log('Submit Json errorB');
+		return;
+	}
+	var subobj={'pid':q.pid,'language':q.language,'source':q.source,'datetime':new Date(),'uid':uid};
 
 	async.waterfall([
 	function(callback){
 		var c=findcontest(uid,q.pid,sql,function(ret){
 			if(ret==null)
-				callback('ERR:FC');
+				callback('Submit ERR:Find Contest Module Error');
 			else
-				callback(ret);//
+				callback(null,ret);
 		});
 	},
 	function(cidarr,callback){
@@ -204,18 +180,19 @@ function submit(uid,data,sql,callback,eventbus){
 		});
 	},
 	function(cidarr,sqlc,callback){
-		sqlc.query('INSERT INTO xjos.submit SET ?',q,function(err,res){
-			if(typeof(res)!='object'){
-				callback('fail');
+		sqlc.query('INSERT INTO xjos.submit SET ?',subobj,function(err,res){
+			if(err){
+				callback('Submit SQL Insert Fail');
 			}else{
 				callback(err,cidarr,sqlc,res.insertId);
 			}
 		});
 	},
 	function(cidarr,sqlc,id,callback){
-		for(var i=0;i<cidarr.length;i++){
+		async.each(cidarr,
+		function(item,callback){
 			sql.getConnection(function(err,sqlc){
-				var qobj={'cid':cidarr[i],'sid':id};
+				var qobj={'cid':item.cid,'sid':id};
 				sqlc.query('INSERT INTO xjos.contest_submit SET '+sqlc.escape(qobj),
 				function(err,sqlr){
 					if(err)
@@ -223,24 +200,34 @@ function submit(uid,data,sql,callback,eventbus){
 					sqlc.end();
 				});
 			});
-		}
+		},
+		function(err){
+			callback(err,cidarr,sqlc,id);
+		});
 	},
 	function(cidarr,sqlc,id,callback){
 		sqlc.query('SELECT problem_data_id,problem_data_method,problem_data_score,problem_data_time,problem_data_memory,problem_data_rank,tester FROM xjos.problem_data WHERE pid=?',q.pid,function(err,res){
-			callback(err,id,res,sqlc);
+			callback(err,cidarr,id,res,sqlc);
 		});
 	}],
 	function(err,cidarr,zid,zpdidl,sqlc){
 		var ret={sid:zid,datalist:zpdidl,datetime:q.datetime};
+		var isOkToRetStatus=true;
 		if(err){
 			ret.status='fail';
+			console.log('Submit Fail:'+err);
+			return;
 		}else{
 			ret.status='ok';
 		}
+//		console.log(ret);
 		callback(JSON.stringify(ret));
+		for(var i=0;i<cidarr.length;i++){
+			if(cidarr[i].type=='OI')
+				isOkToRetStatus=false;
+		}
 		eventbus.on('tcp.judge.'+zid,
 		function(dataset){
-			if(cidarr)return;
 			sql.getConnection(function(err,sqlc){
 				if(err){
 					console.log('SUBMIT ERROR:'+err);
@@ -254,11 +241,12 @@ function submit(uid,data,sql,callback,eventbus){
 					}
 					var retobj={'sid':zid,'problem_data_id':dataset[1],'result':dataset[2],'time':dataset[3],'memory':dataset[4],'grade':dataset[5],'infomation':rows[0]['infoboard']};
 					sqlc.end();
-					callback(JSON.stringify(retobj));
+//					console.log(isOkToRetStatus);
+					if(isOkToRetStatus)
+						callback(JSON.stringify(retobj));
 				});
 			});
 		});
-		sqlc.end();
 	});
 }
 function updateelo(sid,pid,uid,result,sql){
