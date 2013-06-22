@@ -62,13 +62,19 @@ exports.start=function(server,sqlpool,wshandler,eventbus,simpledb){
 		console.log((new Date()) + ' Connection accepted.');
 
 		connection.on('message', function(message) {
-			var ktime=Math.Round((new Date()).getTime()/50);
+			var ktime=Math.round((new Date()).getTime()/5000);
 			if(connection.lastTime===undefined)
 				connection.lastTime=0;
-			if(connection.lastTime===ktime)
-				return;
-			else
+			if(connection.lastTimeCount===undefined)
+				connection.lastTimeCount=0;
+			if(connection.lastTime===ktime){
+				connection.lastTimeCount+=1;
+				if(connection.lastTimeCount>=50)
+					return;
+			}else{
 				connection.lastTime=ktime;
+				connection.lastTimeCount=0;
+			}
 			if (message.type === 'utf8') {
 				wshandler.handle(message.utf8Data,connection,sqlpool,eventbus);
 			}
