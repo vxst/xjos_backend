@@ -4,6 +4,7 @@ var deal={};
 deal['uploaddata']=require('./post/uploaddata').main;
 
 function findpath(path,sql,callback){
+	if(path.length!=33)return;
 	sql.getConnection(function(err,sqlc){
 		if(err){
 			console.log('ERROR!');
