@@ -18,7 +18,7 @@ function regcontest(uid,data,sql,callback){
 		return;
 	}
 	try{
-		var obj=JSON.stringify(data);
+		var obj=JSON.parse(data);
 		if(typeof(obj.cid)!='number'||typeof(obj.type)!='string'||typeof(obj.start_time)!='string'){
 			console.log('ERR');
 			return;
@@ -37,7 +37,7 @@ function regcontest(uid,data,sql,callback){
 		}],
 		function(err){
 			if(err){
-				callback('ERR');
+				callback('err');
 				console.log('Regcontest:'+err);
 			}else{
 				callback('ok');
