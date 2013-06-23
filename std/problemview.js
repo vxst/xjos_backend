@@ -6,7 +6,33 @@ exports.main=function(conn,handle,data,sql,callback){
 		if(ct==0)return;
 		if(handle==='view'){
 			view(conn.uid,data,sql,callback);
+		}else if(handle==='sample'){
+			sample(conn.uid,data,sql,callback);
 		}
+	});
+}
+//Get samples for one problem
+function sample(uid,data,sql,callback){
+	if(isNaN(data))return;
+	var pid=parseInt(data);
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('SELECT problem_sample_input AS input, problem_sample_output AS output, problem_sample_id AS psid FROM xjos.problem_sample WHERE pid='+sqlc.escape(pid),
+		function(err,rows){
+			callback(err,rows);
+			sqlc.end();
+		});
+	},
+	function(rows,cb){
+		callback(JSON.stringify(rows));
+		cb();
+	}],
+	function(err){
+		if(err)
+			console.log('PSample Error:'+JSON.stringify(err));
 	});
 }
 function view(uid,data,sql,callback){
@@ -20,7 +46,15 @@ function view(uid,data,sql,callback){
 	function(sqlc,callback){
 		sqlc.query("SELECT pid,problem_title,problem_description,problem_input,problem_output,problem_hint,elo FROM xjos.problem WHERE pid="+sqlc.escape(pid),
 		function(err,rows){
-			callback(err,sqlc,rows[0]);
+			if(err){
+				console.log(err);
+				return;
+				callback(err);
+			}else if(rows.length>0){
+				callback(err,sqlc,rows[0]);
+			}else{
+				callback('Length Wrong');
+			}
 		});
 	},
 	function(sqlc,pobj,callback){

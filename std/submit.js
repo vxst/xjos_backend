@@ -50,7 +50,8 @@ function destatus(rows){//S2
 		rows[i]['status']=(rows[i]['status']|4096)^4096;
 	}
 }
-function list(uid,data,sql,callback){//S2
+function list(uid,data,sql,callback){//S1
+	if(data!='all')return;
 	async.waterfall([
 	function(callback){
 		sql.getConnection(callback);
@@ -69,18 +70,21 @@ function list(uid,data,sql,callback){//S2
 		});
 	},
 	function(rowstatus,sqlc,cb){
-		sqlc.query('SELECT sid FROM xjos.contest_submit INNER JOIN xjos.user_contest ON user_contest.cid=contest_submit.cid WHERE uid='+sqlc.escape(uid)+' AND start_time<NOW() AND end_time>NOW() ORDER BY sid ASC',
+		sqlc.query('SELECT sid FROM xjos.contest_submit NATURAL JOIN xjos.user_contest WHERE uid='+sqlc.escape(uid)+' AND start_time<NOW() AND end_time>NOW() ORDER BY sid ASC',
 		function(err,rows){
 			cb(err,rows,rowstatus);
 			sqlc.end();
 		});
 	},
 	function(sidarr,sbmarr,cb){
+		console.log(sidarr);
 		for(var i=0,j=0;i<sbmarr.length&&j<sidarr.length;i++){
-			while(sbmarr[i].sid>sidarr[j].sid)
+			while(j<sidarr.length&&sbmarr[i].sid>sidarr[j].sid)
 				j++;
+			if(j==sidarr.length)break;
 			if(sbmarr[i].sid==sidarr[j].sid){
-				sbmarr[i]['status']=sbmarr[i]['grade']=null;
+				sbmarr[i]['grade']=null;
+				sbmarr[i]['status']&=6;
 			}
 		}
 		callback(JSON.stringify(sbmarr));
@@ -114,23 +118,28 @@ function single(uid,data,sql,callback){
 			}else{
 				destatus(rows);
 				var cuteobj=rows[0];
-				xmlparser(cuteobj.result,{explicitArray:false},
-				function(err,res){
-					cuteobj.result=res.res.point;
-					cb(null,cuteobj);
-				});
+				if(cuteobj.result.length>0){
+					xmlparser(cuteobj.result,{explicitArray:false},
+					function(err,res){
+						cuteobj.result=res.res.point;
+						cb(null,sqlc,cuteobj);
+					});
+				}else{
+					cb(null,sqlc,cuteobj);
+				}
 			}
-			sqlc.end();
 		});
 	},
-	function(cuteobj,callback){
-		sql.getConnection(function(err,sqlc){
-			if(err){
-				callback(err);
-				return;
-			}else{
-				callback(null,cuteobj,sqlc);
+	function(sqlc,cuteobj,cb){
+		sqlc.query('SELECT sid FROM xjos.user_contest NATURAL JOIN xjos.contest_submit WHERE uid='+sqlc.escape(uid)+' AND start_time<NOW() AND end_time> NOW() ORDER BY sid ASC',
+		function(err,rows){
+			cuteobj.isincontest=false;
+			for(var i=0;i<rows.length;i++){
+				if(rows[i].sid==data){
+					cuteobj.isincontest=true;
+				}
 			}
+			cb(null,cuteobj,sqlc);
 		});
 	},
 	function(cuteobj,sqlc,callback){
@@ -146,6 +155,12 @@ function single(uid,data,sql,callback){
 		});
 	},
 	function(cuteobj,cb){
+		if(cuteobj.isincontest){
+			cuteobj.datalist=[];
+			cuteobj['status']&=6;
+			cuteobj['running']=cuteobj['grade']=null;
+			cuteobj['result']={};
+		}
 		callback(JSON.stringify(cuteobj));
 		cb();
 	}],

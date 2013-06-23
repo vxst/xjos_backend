@@ -49,7 +49,7 @@ exports.start=function(server,sqlpool,wshandler,eventbus,simpledb){
 
 		if(simpledb.connectionCountDB[request.remoteAddress]==undefined)
 			simpledb.connectionCountDB[request.remoteAddress]=0;
-		if(simpledb.connectionCountDB[request.remoteAddress]>=3){
+		if(simpledb.connectionCountDB[request.remoteAddress]>=1){
 			request.reject(403,'Too many connections on a single IP');
 			console.log('Connection From IP:'+request.remoteAddress+' rejected');
 			return;

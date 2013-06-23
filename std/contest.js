@@ -35,13 +35,33 @@ function regcontest(uid,data,sql,callback){//S1
 			console.log('ERR');
 			return;
 		}
-		obj.start_time.setTime(obj.start_time.getTime()+8*3600*1000);
-		var mkobk={'cid':obj.cid,'type':obj.type,'uid':uid,'start_time':obj.start_time,'reg_time':new Date()};
+		obj.start_time=new Date((new Date(obj.start_time)).getTime()+8*3600*1000);
+		var mkobk={'cid':obj.cid,'type':obj.type,'uid':uid,'start_time':obj.start_time,'end_time':obj.end_time,'reg_time':new Date()};
 		async.waterfall([
 		function(callback){
 			sql.getConnection(callback);
 		},
 		function(sqlc,callback){
+			sqlc.query('SELECT start_time,end_time FROM xjos.contest WHERE cid='+sqlc.escape(obj.cid),
+			function(err,rows){
+				if(err){
+					callback(err);
+					return;
+				}
+				if(rows.length==0){
+					callback('Not exist');
+					return;
+				}
+				callback(null,sqlc,rows[0]);
+			});
+		},
+		function(sqlc,ctobj,callback){
+			if(mkobk.type=='real'){
+				mkobk.start_time=ctobj.start_time;
+				mkobk.end_time=ctobj.end_time;
+			}else if(mkobk.type!='virtual'){
+				return;
+			}
 			sqlc.query('INSERT INTO xjos.user_contest SET '+sqlc.escape(mkobk),
 			function(err,rows){
 				callback(err);
@@ -179,18 +199,29 @@ function info(uid,data,sql,callback){//S2
 	function(sqlc,cobj,probs,cb){
 		sqlc.query('SELECT ucid,type,reg_time,start_time FROM xjos.user_contest WHERE uid='+sqlc.escape(uid)+' AND cid='+sqlc.escape(cid),
 		function(err,rows){
-			cb(err,cobj,probs,rows);
+			cb(err,sqlc,cobj,probs,rows);
+		});
+	},
+	function(sqlc,cobj,probs,regs,cb){
+		cobj.probs=probs;
+		cobj.regs=regs;
+		sqlc.query('SELECT pid,sid,status,datetime,language FROM xjos.contest_submit NATURAL JOIN xjos.submit WHERE cid='+sqlc.escape(cid)+' AND uid='+sqlc.escape(uid),function(err,rows){
+			var st=new Date(cobj.start_time),et=new Date(cobj.end_time),now=new Date();
+			if(st<now&&et>now&&cobj.type=='OI'){
+				for(var i=0;i<rows.length;i++)
+					rows[i]['status']&=6;
+			}
+			cobj.submits=rows;
+			cb(null,cobj);
 			sqlc.end();
 		});
 	},
-	function(cobj,probs,regs,cb){
-		cobj.probs=probs;
-		cobj.regs=regs;
+	function(cobj,cb){
 		callback(JSON.stringify(cobj));
 		cb();
 	}],
 	function(err){
 		if(err)
-			console.log("ERR:STD-CONTEST-GETP:"+err);
+			console.log("ERR:STD-CONTEST-GETP:"+JSON.stringify(err));
 	});
 }
