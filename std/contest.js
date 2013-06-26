@@ -11,6 +11,8 @@ exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 		regcontest(conn.uid,data,sql,callback);
 	}else if(handle==='delete'){
 		deletecontest(conn.uid,data,sql,callback);
+	}else if(handle==='grade'){
+		grade(conn.uid,data,sql,callback);
 	}
 }
 
@@ -23,6 +25,33 @@ function deletecontest(uid,data,sql,callback){//S0
 		}
 	}catch(e){
 	}
+}
+function grade(uid,data,sql,callback){
+	var cid;
+	try{
+		var inputobj=JSON.parse(data);
+		cid=inputobj.cid;
+	}catch(e){
+		console.log('Error:'+e);
+	}
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('SELECT pid,uid,sid,username,grade FROM xjos.submit NATURAL JOIN xjos.user WHERE sid IN (SELECT MAX(sid) FROM xjos.contest_submit NATURAL JOIN xjos.submit WHERE cid='+sqlc.escape(cid)+' GROUP BY uid,pid)',
+		function(err,rows){
+			callback(err,rows,sqlc);
+		});
+	},
+	function(rows,sqlc,cb){
+		callback(JSON.stringify(rows));
+		cb(sqlc);
+	}],
+	function(err){
+		if(err)
+			console.log(err);
+	});
 }
 function regcontest(uid,data,sql,callback){//S1
 	if(uid==null){

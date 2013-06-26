@@ -1,13 +1,11 @@
 var isok=require('../lib/isok').isok;
 var async=require('async');
 exports.main=function(conn,handle,data,sql,callback){
-	isok(conn.uid,'view_problem',sql,
+	isok(conn.uid,'view_user',sql,
 	function(ct){
 		if(ct==0)return;
-		if(handle==='view'){
-			view(conn.uid,data,sql,callback);
-		}else if(handle==='sample'){
-			sample(conn.uid,data,sql,callback);
+		if(handle==='list'){
+			list(conn.uid,data,sql,callback);
 		}
 	});
 }
@@ -75,5 +73,23 @@ function view(uid,data,sql,callback){
 			return;
 		if(err)
 			console.log('VIEW ERROR:'+err);
+	});
+}
+function list(uid,data,sql,callback){
+	async.waterfall([
+	function(callback){
+		sql.getConnection('SELECT * FROM xjos.user',
+		function(err,rows){
+			callback(err,rows);
+			sqlc.end();
+		});
+	},
+	function(rows,cb){
+		callback(JSON.stringify(rows));
+		cb();
+	}],
+	function(err){
+		if(err)
+			console.log(err);
 	});
 }

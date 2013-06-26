@@ -81,7 +81,7 @@ function add(uid,data,sql,callback){
 		}
 	});
 }
-function add(uid,data,sql,callback){
+function del(uid,data,sql,callback){
 	var inputobj=null;
 	var psid=null;
 	try{
@@ -114,4 +114,18 @@ function add(uid,data,sql,callback){
 			callback('fail');
 		}
 	});
+}
+function view(uid,data,sql,callback){
+	var inputobj=null;
+	var pid=null,psid=null;
+	try{
+		inputobj=JSON.parse(data);
+		if(inputobj.pid!=undefined)
+			pid=inputobj.pid;
+		if(inputobj.psid!=undefined)
+			psid=inputobj.psid;
+	
+	}catch(e){
+		console.log(e);
+	}
 }
