@@ -13,9 +13,95 @@ exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 		deletecontest(conn.uid,data,sql,callback);
 	}else if(handle==='grade'){
 		grade(conn.uid,data,sql,callback);
+	}else if(handle==='edit'){
+		edit(conn.uid,data,sql,callback);
+	}else if(handle==='addprob'){
+		addprob(conn.uid,data,sql,callback);
+	}else if(handle==='delprob'){
+		delprob(conn.uid,data,sql,callback);
 	}
 }
 
+function addprob(uid,data,sql,callback){
+	var pobj;
+	try{
+		var p=JSON.parse(data);
+		pobj={'cid':p.cid,'pid':p.pid};
+	}catch(e){
+		console.log(e);
+		return;
+	}
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('DELETE FROM xjos.contest_problem WHERE cid='+sqlc.escape(pobj.cid)+' AND pid='+sqlc.escape(pobj.pid),function(err,rows){callback(err);sqlc.end()});}],
+	function(err){
+		if(err){
+			console.log(err);
+			callback('fail');
+		}else{
+			callback('ok');
+		}
+	});
+}
+function addprob(uid,data,sql,callback){
+	var pobj;
+	try{
+		var p=JSON.parse(data);
+		pobj={'cid':p.cid,'pid':p.pid};
+	}catch(e){
+		console.log(e);
+		return;
+	}
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('INSERT INTO xjos.contest_problem SET '+sqlc.escape(pobj),function(err,rows){callback(err);sqlc.end()});
+	}],
+	function(err){
+		if(err){
+			console.log(err);
+			callback('fail');
+		}else{
+			callback('ok');
+		}
+	});
+}
+function edit(uid,data,sql,callback){
+	var pobj;
+	var cid;
+	try{
+		var t=JSON.parse(data);
+		pobj={};
+		pobj[t.order]=t.data;
+		cid=t.cid;
+	}catch(e){
+		console.log(e);
+		return;
+	}
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('UPDATE xjos.contest SET '+sqlc.escape(pobj)+' WHERE cid='+sqlc.escape(cid),
+		function(err,rows){
+			callback(err,rows);
+			sqlc.end();
+		});
+	}],
+	function(err){
+		if(err){
+			console.log(err);
+			callback('fail');
+		}else
+			callback('ok');
+	});
+}
 function deletecontest(uid,data,sql,callback){//S0
 	try{
 		if(isNaN(data)){
@@ -121,7 +207,7 @@ function list(uid,data,sql,callback){//S2
 			sql.getConnection(cb);
 		},
 		function(sqlc,cb){
-			sqlc.query("SELECT cid,name,type,start_time,end_time,TIMEDIFF(end_time,start_time) AS length,((end_time<NOW()) + (start_time<NOW())) AS status,ROUND(RAND()*10) AS level FROM xjos.contest ORDER BY start_time DESC",function(err,rows){
+			sqlc.query("SELECT cid,name,type,start_time,end_time,TIMEDIFF(end_time,start_time) AS length,((end_time<NOW()) + (start_time<NOW())) AS status,levelt AS level FROM xjos.contest ORDER BY start_time DESC",function(err,rows){
 				if(!err)
 					callback(JSON.stringify(rows));
 				sqlc.end();
@@ -205,7 +291,7 @@ function info(uid,data,sql,callback){//S2
 		sql.getConnection(cb);
 	},
 	function(sqlc,cb){
-		sqlc.query('SELECT cid,name,type,start_time,end_time,TIMEDIFF(end_time,start_time) AS length,((end_time<NOW()) + (start_time<NOW())) AS status,ROUND(RAND()*10) AS level FROM xjos.contest WHERE cid='+sqlc.escape(cid),
+		sqlc.query('SELECT cid,name,type,start_time,end_time,TIMEDIFF(end_time,start_time) AS length,((end_time<NOW()) + (start_time<NOW())) AS status,levelt AS level FROM xjos.contest WHERE cid='+sqlc.escape(cid),
 		function(err,rows){
 			if(rows.length>0)
 				cb(err,sqlc,rows[0]);

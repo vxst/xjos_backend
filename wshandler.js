@@ -15,6 +15,7 @@ handle['problemdata']=require('./std/problemdata').main;
 handle['contest']=require('./std/contest').main;
 handle['postreg']=require('./std/postreg').main;
 handle['problemsample']=require('./std/problemsample').main;
+handle['user']=require('./std/user').main;
 
 /*handle['regbin']=function(conn,order,data,mysql,cb){
 	if(conn.uid==undefined){
