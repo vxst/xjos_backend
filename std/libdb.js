@@ -1,0 +1,109 @@
+var async=require('async');
+exports.ispidexist=function (pid,sql,callback){
+	if(isNaN(pid)){
+		callback('Format error');
+		return;
+	}
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('SELECT pid FROM xjos.problem WHERE pid='+sqlc.escape(pid),function(err,rows){
+			callback(err,rows);
+			sqlc.end();
+		});
+	},
+	function(rows,cb){
+		if(rows.length>0)
+			callback(null,true);
+		else
+			callback(null,false);
+		cb();
+	}],
+	function(err){
+		if(err)
+			console.log('LIBDBERR:ISPIDEXIST:'+err);
+	});
+}
+exports.isuidexist=function(uid,sql,callback){
+	if(isNaN(uid)){
+		callback('Format error');
+		return;
+	}
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('SELECT uid FROM xjos.user WHERE uid='+sqlc.escape(uid),function(err,rows){
+			callback(err,rows);
+			sqlc.end();
+		});
+	},
+	function(rows,cb){
+		if(rows.length>0)
+			callback(null,true);
+		else
+			callback(null,false);
+		cb();
+	}],
+	function(err){
+		if(err)
+			console.log('LIBDBERR:ISUIDEXIST:'+err);
+	});
+}
+exports.iscidexist=function(cid,sql,callback){
+	if(isNaN(cid)){
+		callback('Format error');
+		return;
+	}
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('SELECT cid FROM xjos.contest WHERE cid='+sqlc.escape(cid),function(err,rows){
+			callback(err,rows);
+			sqlc.end();
+		});
+	},
+	function(rows,cb){
+		if(rows.length>0)
+			callback(null,true);
+		else
+			callback(null,false);
+		cb();
+	}],
+	function(err){
+		if(err)
+			console.log('LIBDBERR:ISCIDEXIST:'+err);
+	});
+}
+exports.issidexist=function(sid,sql,callback){
+	if(isNaN(sid)){
+		callback('Format error');
+		return;
+	}
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('SELECT sid FROM xjos.submit WHERE sid='+sqlc.escape(sid),function(err,rows){
+			callback(err,rows);
+			sqlc.end();
+		});
+	},
+	function(rows,cb){
+		if(rows.length>0)
+			callback(null,true);
+		else
+			callback(null,false);
+		cb();
+	}],
+	function(err){
+		if(err)
+			console.log('LIBDBERR:ISSIDEXIST:'+err);
+	});
+}

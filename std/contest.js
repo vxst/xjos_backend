@@ -1,4 +1,5 @@
-var async=require('async');
+var async=require('async'),
+    libdb=require('./libdb');
 exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 	if(conn.uid==null){
 		return;
@@ -22,7 +23,8 @@ exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 	}
 }
 
-function addprob(uid,data,sql,callback){
+
+function delprob(uid,data,sql,callback){
 	var pobj;
 	try{
 		var p=JSON.parse(data);
@@ -32,6 +34,17 @@ function addprob(uid,data,sql,callback){
 		return;
 	}
 	async.waterfall([
+	function(callback){
+		libdb.iscidexist(pobj.cid,sql,callback);
+	},
+	function(isc,callback){
+		libdb.ispidexist(pobj.pid,sql,function(err,isp){
+			if((!isp)||(!isc))
+				callback('DELPROB:CID OR PID NOT EXISTS');
+			else
+				callback(null);
+		});
+	},
 	function(callback){
 		sql.getConnection(callback);
 	},
@@ -57,9 +70,30 @@ function addprob(uid,data,sql,callback){
 	}
 	async.waterfall([
 	function(callback){
+		libdb.iscidexist(pobj.cid,sql,callback);
+	},
+	function(isc,callback){
+		libdb.ispidexist(pobj.pid,sql,function(err,isp){
+			if((!isp)||(!isc))
+				callback('ADDPROB:CID OR PID NOT EXISTS');
+			else
+				callback(null);
+		});
+	},
+	function(callback){
 		sql.getConnection(callback);
 	},
 	function(sqlc,callback){
+		sqlc.query('SELECT MAX(contest_problem_rank) AS cr FROM xjos.contest_problem WHERE cid='+pobj.cid,
+		function(err,rows){
+			if(rows.length<1)callback('Error:Contest_AddProb CPR Not Exist')
+			callback(err,rows[0].cr,sqlc);
+		});
+	},
+	function(ct,sqlc,callback){
+		pobj.contest_problem_rank=ct+1;
+		if(data.rank!=undefined)
+			pobj.contest_problem_rank=data.rank;
 		sqlc.query('INSERT INTO xjos.contest_problem SET '+sqlc.escape(pobj),function(err,rows){callback(err);sqlc.end()});
 	}],
 	function(err){
