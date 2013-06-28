@@ -121,8 +121,12 @@ function userinfo(uid,data,sql,cb){
 		return;
 	}
 	sql.getConnection(function(err,sqlconn){
-		sqlconn.query("SELECT uid,email,username,realname,nickname,birthday,icon,gold,silver,rating,level,exp,sign FROM xjos.user WHERE uid="+sqlconn.escape(uid),
+		sqlconn.query("SELECT uid,email,username,realname,nickname,birthday,icon,gold,silver,rating,level,sign FROM xjos.user WHERE uid="+sqlconn.escape(uid),
 		function(err,rows){
+			if(err){
+				console.log(err);
+				return;
+			}
 			cb(JSON.stringify(rows[0]));
 			sqlconn.end();
 		});
