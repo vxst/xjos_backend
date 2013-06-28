@@ -18,7 +18,7 @@ function gettopics(uid,data,sql,callback){
 		sql.getConnection(callback);
 	},
 	function(sqlc,callback){
-		sqlc.query('SELECT tid,title,content,uid,username,date,lastreplytime FROM xjos.discuss_topics JOIN xjos.user ON user.uid=discuss_topics.uid WHERE grandfatherid=0 ORDER BY lastreplytime DESC',function(err,rows){
+		sqlc.query('SELECT tid,title,content,user.uid,username,date,lastreplytime FROM xjos.discuss_topics JOIN xjos.user ON user.uid=discuss_topics.uid WHERE grandfathertid=0 ORDER BY lastreplytime DESC',function(err,rows){
 			callback(err,rows);
 			sqlc.end();
 		});
@@ -36,10 +36,11 @@ function addtopic(uid,data,sql,callback){
 	var intobj={};
 	try{
 		var k=JSON.parse(data);
-		intobj={'title':k.title,'uid':uid,'content':filter(k.content),'date':new Date(),'fatherid':k.fatherid,'grandfatherid':k.grandfatherid,'lastreplytime':new Date(),'privuuid':'','rank':0};
-		if(intobj.grandfatherid==undefined){
-			intobj.grandfatherid=0;
-			intobj.fatherid=0;
+		intobj={'title':k.title,'uid':uid,'content':filter(k.content),'date':new Date(),'fathertid':k.fatherid,'grandfathertid':k.grandfatherid,'lastreplytime':new Date(),'privuuid':'','rank':0};
+		if(intobj.grandfathertid==undefined){
+			console.log('Add topic');
+			intobj.grandfathertid=0;
+			intobj.fathertid=0;
 			async.waterfall([
 			function(callback){
 				sql.getConnection(callback);
@@ -76,6 +77,7 @@ function addtopic(uid,data,sql,callback){
 			},
 			function(sqlc,maxrank,callback){
 				intobj.rank=maxrank+1;
+				callback(null,sqlc);
 			},
 			function(sqlc,callback){
 				sqlc.query('UPDATE xjos.discuss_topics SET lastreplytime='+sqlc.escape(new Date())+' WHERE tid='+sqlc.escape(intobj.fatherid),
