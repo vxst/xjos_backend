@@ -79,7 +79,8 @@ exports.start=function(server,sqlpool,wshandler,eventbus,simpledb){
 				wshandler.handle(message.utf8Data,connection,sqlpool,eventbus);
 			}
 			else if (message.type === 'binary') {
-				console.log('Why Received Binary Message of ' + message.binaryData.length + ' bytes?');
+				wshandler.handle(message.binaryData,connection,sqlpool,eventbus);
+//				console.log('Why Received Binary Message of ' + message.binaryData.length + ' bytes?');
 //				connection.sendBytes(message.binaryData);
 //				wshandler.binhandle(message.binaryData,connection,sqlpool,eventbus);
 			}

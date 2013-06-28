@@ -16,8 +16,11 @@ exports.main=function(conn,handle,data,sql,callback){
 		if(handle==='edit'){
 			edit(conn.uid,data,sql,callback);
 		}else
-		if(handle==='editpriv'){
+		if(handle==='grantpriv'){
 			editpriv(conn.uid,data,sql,callback);
+		}else
+		if(handle==='deletepriv'){
+			deletepriv(conn.uid,data,sql,callback);
 		}
 	});
 	if(handle==='editself'){
@@ -162,6 +165,7 @@ function editpriv(uid,data,sql,callback){
 	var kobj={},zuid;
 	try{
 		var pobj=JSON.parse(data);
+		if(pobj.childavail==undefined)pobj.childavail=0;
 		kobj['pvid']=pobj.pvid;
 		kobj['uid']=pobj.uid;
 		kobj['cha']=pobj.childavail;
@@ -189,8 +193,87 @@ function editpriv(uid,data,sql,callback){
 		});
 	},
 	function(sqlc,cl,fa,callback){
-		var iobj={'uid':kobj.uid,'pvid':kobj.pvid,'privfather':fa,'childlen':childlen-1,'childnum':0,'time':new Date(),'childavail':kobj.cha}
+		var iobj={'uid':kobj.uid,'pvid':kobj.pvid,'privfather':fa,'childlen':cl-1,'childnum':0,'time':new Date(),'childavail':kobj.cha}
 		sqlc.query('INSERT INTO xjos.user_priv_table SET '+sqlc.escape(iobj),
+		function(err,rows){
+			callback(err);
+		})
+	},
+	function(cb){
+		callback('ok');
+		cb();
+	}],
+	function(err){
+		if(err)
+			console.log(err);
+	});
+}
+function deletepriv(uid,data,sql,callback){
+	var kobj={},zuid;
+	try{
+		var pobj=JSON.parse(data);
+		kobj['pvid']=pobj.pvid;
+		kobj['uid']=pobj.uid;
+	}catch(e){
+		console.log(e);
+		return;
+	}
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('SELECT upid,childavail,childlen FROM xjos.user_priv_table WHERE uid='+sqlc.escape(uid)+' AND pvid='+sqlc.escape(kobj.pvid),function(err,rows){
+			if(err){callback(err);return;}
+			if(rows.length<1){callback('NoPriv');return}
+			callback(err,sqlc,rows[0].childavail,rows[0].childlen,rows[0].upid);
+		});
+	},
+	function(sqlc,childavail,cl,upid,callback){
+		sqlc.query('UPDATE xjos.user_priv_table SET childavail='+sqlc.escape(childavail+1)+' WHERE uid='+sqlc.escape(uid)+' AND pvid='+sqlc.escape(kobj.pvid),
+		function(err,rows){
+			callback(err,sqlc,cl,upid);
+		});
+	},
+	function(sqlc,cl,fa,callback){
+		sqlc.query('SELECT upid FROM xjos.user_priv_table WHERE uid='+sqlc.escape(kobj.uid)+' AND pvid='+sqlc.escape(kobj.pvid),function(err,rows){
+			if(err){callback(err);return;}
+			if(rows.length<1){callback('NoSuchPriv');return}
+			var upid=rows[0].upid;
+			var killchildren=function(sqlc,upid,callback){
+				async.waterfall([
+				function(callback){
+					sqlc.query('SELECT upid FROM xjos.user_priv_table WHERE privfather='+sqlc.escape(upid),
+					function(err,rows){
+						callback(err,rows);
+					});
+				},
+				function(mkrows,callback){
+					async.eachSeries(mkrows,
+					function(upidobj,callback){
+						killchildren(sqlc,upidobj.upid,callback);
+					},
+					function(err){
+						callback(err);
+					});
+				},
+				function(callback){
+					sqlc.query('DELETE FROM xjos.user_priv_table WHERE privfather='+sqlc.escape(upid),
+					function(err,rows){
+						callback(err);
+					});
+				}],
+				function(err){
+					if(err)
+						console.log(err);
+					callback(err,sqlc);
+				});
+			};
+			killchildren(sqlc,upid,callback);
+		});
+	},
+	function(sqlc,callback){
+		sqlc.query('DELETE FROM xjos.user_priv_table WHERE uid='+sqlc.escape(kobj.uid)+' AND pvid='+sqlc.escape(kobj.pvid),
 		function(err,rows){
 			callback(err);
 		})

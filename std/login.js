@@ -159,12 +159,17 @@ function tryreg(uid,data,sql,callback){
 		sql.getConnection(function(err,sqlconn){
 			sqlconn.query('INSERT INTO xjos.user (username,password,password_salt) VALUES('+sqlconn.escape(username)+','+sqlconn.escape(password)+','+sqlconn.escape(password_salt)+')',function(err,rows){
 				sqlconn.end();
-				callback(null,err);
+				if(err){
+					console.log(err);
+					callback('SQL ERROR');
+				}else{
+					callback(null,'ok');
+				}
 			});
 		});
 	}],
 	function(err,info){
-		if(err!=null){
+		if(err){
 			callback(err);
 		}else{
 			callback(info);

@@ -1,3 +1,4 @@
+var zlib=require('zlib');
 var bhandle={};
 bhandle['upload']=require('./std/file').bin;
 var handle={};
@@ -16,6 +17,7 @@ handle['contest']=require('./std/contest').main;
 handle['postreg']=require('./std/postreg').main;
 handle['problemsample']=require('./std/problemsample').main;
 handle['user']=require('./std/user').main;
+handle['discuss']=require('./std/discuss').main;
 
 /*handle['regbin']=function(conn,order,data,mysql,cb){
 	if(conn.uid==undefined){
@@ -83,8 +85,29 @@ function checkstr(wsstr){
 //	console.log("T_T"+_counterz+"+"+_counterp);
 	return true;
 }
-exports.handle=function(wsstr,conn,mysql,eventbus){
+exports.handle=function(wsbin,conn,mysql,eventbus){
+//	console.log(wsbin);
+	if(wsbin!=="Thank you for accepting me"){
+		try{
+			var buffer=wsbin;
+//			wsstr = zlib.inflateSync(buffer).toString('utf8');
+//			dohandle(wsstr,connn,mysql,eventbus);
+			zlib.inflateRaw(buffer,function(err,newbuf){
+				if(err){
+					console.log(err);
+					return;
+				}
+				var kstr=newbuf.toString('utf8');
+				dohandle(kstr,conn,mysql,eventbus);
+			});
+		}catch(e){
+			console.log(e);
+		}
+	}
+}
+var dohandle=function(wsstr,conn,mysql,eventbus){
 //	try{
+//	console.log('DO handle! '+wsstr);
 		if(!checkstr(wsstr)&&wsstr!=="Thank you for accepting me"){
 			console.log('Unknown WS Order:'+wsstr);
 			conn.send("UNDEF_STRING_ERROR");
