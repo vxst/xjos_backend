@@ -206,9 +206,15 @@ function submit(uid,data,sql,callback,eventbus){//S2
 	function(cidarr,sqlc,id,callback){
 		async.each(cidarr,
 		function(item,callback){
+			var qobj={'cid':item.cid,'sid':id,'islast':1};
 			async.waterfall([
 			function(callback){
 				sql.getConnection(callback);
+			},
+			function(sqlc,callback){
+				sqlc.query('LOCK TABLES xjos.contest_submit WRITE',function(err,rows){
+					callback(err,sqlc);
+				});
 			},
 			function(sqlc,callback){
 				sqlc.query('UPDATE xjos.contest_submit JOIN xjos.submit ON submit.sid=contest_submit.sid SET islast=0 WHERE cid='+item.cid+' AND pid='+q.pid,function(err,rows){
@@ -218,9 +224,14 @@ function submit(uid,data,sql,callback,eventbus){//S2
 			function(sqlc,callback){
 				sqlc.query('INSERT INTO xjos.contest_submit SET '+sqlc.escape(qobj),
 				function(err,sqlr){
+					callback(err,sqlc);
+				})
+			},
+			function(sqlc,callback){
+				sqlc.query('UNLOCK TABLES',function(err,rows){
 					callback(err);
 					sqlc.end();
-				})
+				});
 			}],
 			function(err){
 				if(err)

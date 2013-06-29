@@ -20,11 +20,10 @@ exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 		addprob(conn.uid,data,sql,callback);
 	}else if(handle==='delprob'){
 		delprob(conn.uid,data,sql,callback);
-	}else if(handle==='listgrade'){
-		listgrade(conn.uid,data,sql,callback);
 	}
 }
 
+var isprofiling=true;
 
 function delprob(uid,data,sql,callback){
 	var pobj;
@@ -161,14 +160,19 @@ function grade(uid,data,sql,callback){
 		sql.getConnection(callback);
 	},
 	function(sqlc,callback){
-		sqlc.query('SELECT pid,uid,sid,username,grade FROM xjos.submit NATURAL JOIN xjos.user WHERE sid IN (SELECT MAX(sid) FROM xjos.contest_submit NATURAL JOIN xjos.submit WHERE cid='+sqlc.escape(cid)+' GROUP BY uid,pid)',
+		if(isprofiling)
+			console.log('A'+JSON.stringify(new Date()));
+		sqlc.query('SELECT submit.pid,submit.uid,submit.sid,username,status,grade,problem_title FROM xjos.submit JOIN xjos.user ON user.uid=submit.uid JOIN xjos.problem ON submit.pid=problem.pid WHERE sid IN (SELECT submit.sid FROM xjos.contest_submit JOIN xjos.submit ON submit.sid=contest_submit.sid WHERE cid='+sqlc.escape(cid)+' AND islast=1)',
 		function(err,rows){
-			callback(err,rows,sqlc);
+			callback(err,rows);
+			sqlc.end();
+			if(isprofiling)
+				console.log('B'+JSON.stringify(new Date()));
 		});
 	},
-	function(rows,sqlc,cb){
+	function(rows,cb){
 		callback(JSON.stringify(rows));
-		cb(sqlc);
+		cb();
 	}],
 	function(err){
 		if(err)
@@ -377,7 +381,7 @@ function info(uid,data,sql,callback){//S2
 	});
 }
 
-function listgrade(uid,data,sql,callback){
+/*function listgrade(uid,data,sql,callback){
 	var cid;
 	console.log('LG');
 	try{
@@ -399,7 +403,7 @@ function listgrade(uid,data,sql,callback){
 	},
 	function(sqlc,callback){
 		console.log('S:'+new Date());
-		sqlc.query('SELECT submit.sid,cid,pid,uid,grade,status FROM xjos.contest_submit JOIN xjos.submit ON xjos.submit.sid=xjos.contest_submit.sid WHERE scid IN (SELECT MAX(scid) FROM xjos.contest_submit JOIN xjos.submit ON submit.sid=contest_submit.sid WHERE cid='+sqlc.escape(cid)+' GROUP BY cid,uid,pid)',function(err,rows){
+		sqlc.query('SELECT submit.sid,cid,pid,uid,grade,status FROM xjos.contest_submit JOIN xjos.submit ON xjos.submit.sid=xjos.contest_submit.sid WHERE islast=1',function(err,rows){
 			console.log('T:'+new Date());
 			callback(err,sqlc);
 		});
@@ -419,4 +423,4 @@ function listgrade(uid,data,sql,callback){
 		if(err)
 			console.log('List Grade Err:'+err);
 	});
-}
+}*/
