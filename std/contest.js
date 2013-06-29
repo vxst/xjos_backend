@@ -23,7 +23,7 @@ exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 	}
 }
 
-var isprofiling=true;
+var isprofiling=false;
 
 function delprob(uid,data,sql,callback){
 	var pobj;
