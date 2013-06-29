@@ -20,6 +20,8 @@ exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 		addprob(conn.uid,data,sql,callback);
 	}else if(handle==='delprob'){
 		delprob(conn.uid,data,sql,callback);
+	}else if(handle==='listgrade'){
+		listgrade(conn.uid,data,sql,callback);
 	}
 }
 
@@ -372,5 +374,49 @@ function info(uid,data,sql,callback){//S2
 	function(err){
 		if(err)
 			console.log("ERR:STD-CONTEST-GETP:"+JSON.stringify(err));
+	});
+}
+
+function listgrade(uid,data,sql,callback){
+	var cid;
+	console.log('LG');
+	try{
+		var k=JSON.parse(data);
+		cid=parseInt(k.cid);
+		if(isNaN(cid))callback('WA');
+	}catch(e){
+		console.log(e);
+		return;
+	}
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('set profiling=1',function(err,rows){
+			callback(err,sqlc);
+		})
+	},
+	function(sqlc,callback){
+		console.log('S:'+new Date());
+		sqlc.query('SELECT submit.sid,cid,pid,uid,grade,status FROM xjos.contest_submit JOIN xjos.submit ON xjos.submit.sid=xjos.contest_submit.sid WHERE scid IN (SELECT MAX(scid) FROM xjos.contest_submit JOIN xjos.submit ON submit.sid=contest_submit.sid WHERE cid='+sqlc.escape(cid)+' GROUP BY cid,uid,pid)',function(err,rows){
+			console.log('T:'+new Date());
+			callback(err,sqlc);
+		});
+	},
+	function(sqlc,callback){
+		sqlc.query('SHOW PROFILE FOR QUERY 1',function(err,rows){
+			callback(err,rows);
+			sqlc.end();
+		});
+	},
+	function(rows,cb){
+		console.log(rows);
+		callback(JSON.stringify(rows));
+		cb();
+	}],
+	function(err){
+		if(err)
+			console.log('List Grade Err:'+err);
 	});
 }

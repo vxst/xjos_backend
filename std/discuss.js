@@ -36,6 +36,8 @@ function addtopic(uid,data,sql,callback){
 	var intobj={};
 	try{
 		var k=JSON.parse(data);
+		if(k.content.length>32768){callback('Content too long');return;}
+		if(k.title.length>32){callback('Title too long');return;}
 		intobj={'title':k.title,'uid':uid,'content':filter(k.content),'date':new Date(),'fathertid':k.fatherid,'grandfathertid':k.grandfatherid,'lastreplytime':new Date(),'privuuid':'','rank':0};
 		if(intobj.grandfathertid==undefined){
 			console.log('Add topic');

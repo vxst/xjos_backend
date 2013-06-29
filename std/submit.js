@@ -206,14 +206,26 @@ function submit(uid,data,sql,callback,eventbus){//S2
 	function(cidarr,sqlc,id,callback){
 		async.each(cidarr,
 		function(item,callback){
-			sql.getConnection(function(err,sqlc){
-				var qobj={'cid':item.cid,'sid':id};
+			async.waterfall([
+			function(callback){
+				sql.getConnection(callback);
+			},
+			function(sqlc,callback){
+				sqlc.query('UPDATE xjos.contest_submit JOIN xjos.submit ON submit.sid=contest_submit.sid SET islast=0 WHERE cid='+item.cid+' AND pid='+q.pid,function(err,rows){
+					callback(err,sqlc);
+				});
+			},
+			function(sqlc,callback){
 				sqlc.query('INSERT INTO xjos.contest_submit SET '+sqlc.escape(qobj),
 				function(err,sqlr){
-					if(err)
-						callback(err);
+					callback(err);
 					sqlc.end();
-				});
+				})
+			}],
+			function(err){
+				if(err)
+					console.log(err);
+				callback(err);
 			});
 		},
 		function(err){
