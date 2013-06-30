@@ -9,7 +9,35 @@ exports.main=function(conn,handle,data,sql,callback){
 			gettopics(conn.uid,data,sql,callback);
 		}else if(handle==='addtopic'){
 			addtopic(conn.uid,data,sql,callback);
+		}else if(handle==='gettopic'){
+			gettopic(conn.uid,data,sql,callback);
 		}
+	});
+}
+function gettopic(uid,data,sql,callback){
+	var tid=null;
+	try{
+		tid=JSON.parse(data).tid;
+	}catch(e){
+		console.log('DGTE'+e);
+	}
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('SELECT tid,title,content,user.uid,username,date,rank FROM xjos.discuss_topics JOIN xjos.user ON user.uid=discuss_topics.uid WHERE grandfathertid='+sqlc.escape(tid)+' OR tid='+sqlc.escape(tid)+' ORDER BY rank',function(err,rows){
+			callback(err,rows);
+			sqlc.end();
+		});
+	},
+	function(rows,cb){
+		callback(JSON.stringify(rows));
+		cb();
+	}],
+	function(err){
+		if(err)
+			console.log('Discuss.GetTopic:ERR:'+err);
 	});
 }
 function gettopics(uid,data,sql,callback){
@@ -56,14 +84,15 @@ function addtopic(uid,data,sql,callback){
 			}],
 			function(err){
 				if(err){
-					console.log(err);
+					console.log('Discuss.AddTopic:ERR:'+err);
 					callback('err');
 				}else{
 					callback('ok');
 				}
 			});
 		}else{
-			if(intobj.fatherid==undefined){
+			console.log('Add reply topic');
+			if(intobj.fathertid==undefined){
 				console.log('T_T');
 				return;
 			}
@@ -72,8 +101,10 @@ function addtopic(uid,data,sql,callback){
 				sql.getConnection(callback);
 			},
 			function(sqlc,callback){
-				sqlc.query('SELECT MAX(rank) AS mr FROM xjos.discuss_topics WHERE grandfatherid='+sqlc.escape(intobj.grandfatherid),
+				sqlc.query('SELECT MAX(rank) AS mr FROM xjos.discuss_topics WHERE grandfathertid='+sqlc.escape(intobj.grandfathertid),
 				function(err,rows){
+					if(err)
+						callback(err);
 					callback(err,sqlc,rows[0].mr);
 				});
 			},
@@ -96,7 +127,7 @@ function addtopic(uid,data,sql,callback){
 			}],
 			function(err){
 				if(err){
-					console.log(err);
+					console.log('Discuss.AddTopic.ERR2:'+err);
 					callback('err');
 				}else{
 					callback('ok');

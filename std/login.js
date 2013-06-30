@@ -1,6 +1,8 @@
 var async=require('async');
 var crypto=require('crypto');
 var notjson=require('./libjson');//no throw json
+var genkey=require('./libcrypt').genkey;
+var verifykey=require('./libcrypt').verifykey;
 exports.main=function(conn,handle,data,sql,callback){
 	if(handle==='trylogin'){
 		trylogin(conn,data,sql,callback);
@@ -181,23 +183,6 @@ function tryreg(uid,data,sql,callback){
 	});
 }
 
-function genkey(password,cb){
-	async.waterfall([
-		function(callback){
-			crypto.pseudoRandomBytes(3,function(ex,buf){callback(null,buf)});
-		},
-		function(salt,callback){
-			crypto.pbkdf2(password, salt, 320, 9, function(err,dk){callback(null,salt,dk);});
-		},
-		function(salt,dk,callback){
-			var strsalt=salt.toString('base64');
-			var strdk=dk.toString('base64');
-			callback(null,strsalt,strdk);
-		}],
-		function(err,salt,dk){
-			cb(salt,dk);
-		});
-}
 function gentoken(uid,ip,sql,cb){
 	async.waterfall([
 		function(callback){
@@ -229,20 +214,3 @@ function gentoken(uid,ip,sql,cb){
 		}
 	);
 }
-function verifykey(password,ssalt,cb){
-	var salt=new Buffer(ssalt,'base64');
-	//console.log(ssalt);
-	//console.log(salt);
-	async.waterfall([
-		function(callback){
-			crypto.pbkdf2(password, salt, 320, 9, function(err,dk){callback(null,dk);});//1700 op/s for 320
-		},
-		function(dk,callback){
-			var strdk=dk.toString('base64');
-			callback(null,strdk);
-		}],
-	function(err,dk){
-		cb(dk);
-	});
-}
-

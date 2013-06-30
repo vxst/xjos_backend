@@ -80,7 +80,7 @@ function recommend(uid,data,sql,callback){
 	});
 }
 function getlevel(uid,data,sql,callback){
-	console.log("G_A");
+	//console.log("G_A");
 	if(isNaN(data))return;
 	if(typeof(uid)=='undefined'){
 		callback("Must login");
@@ -91,7 +91,7 @@ function getlevel(uid,data,sql,callback){
 	function(err,sqlconn){
 		sqlconn.query('SELECT pid,problem_title,levelt,elo FROM xjos.problem WHERE problem_title!="" AND levelt='+sqlconn.escape(k),
 		function(err,rows){
-			fakerows(rows);
+//			fakerows(rows);
 			callback(JSON.stringify(rows));
 			sqlconn.end();
 		});

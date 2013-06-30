@@ -47,9 +47,9 @@ function view(uid,data,sql,callback){
 		sqlc.query("SELECT pid,problem_title,problem_description,problem_input,problem_output,problem_hint,elo FROM xjos.problem WHERE pid="+sqlc.escape(pid),
 		function(err,rows){
 			if(err){
-				console.log(err);
+				console.log('ProbViewErr:'+err);
 				return;
-				callback(err);
+				callback('err');
 			}else if(rows.length>0){
 				callback(err,sqlc,rows[0]);
 			}else{

@@ -23,7 +23,7 @@ exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 	}
 }
 
-var isprofiling=false;
+var isprofiling=true;
 
 function delprob(uid,data,sql,callback){
 	var pobj;
@@ -53,7 +53,7 @@ function delprob(uid,data,sql,callback){
 		sqlc.query('DELETE FROM xjos.contest_problem WHERE cid='+sqlc.escape(pobj.cid)+' AND pid='+sqlc.escape(pobj.pid),function(err,rows){callback(err);sqlc.end()});}],
 	function(err){
 		if(err){
-			console.log(err);
+			console.log('Contest.DelProb:ERR:'+err);
 			callback('fail');
 		}else{
 			callback('ok');
@@ -99,7 +99,7 @@ function addprob(uid,data,sql,callback){
 	}],
 	function(err){
 		if(err){
-			console.log(err);
+			console.log('Contest.AddProb:ERR:'+err);
 			callback('fail');
 		}else{
 			callback('ok');
@@ -131,7 +131,7 @@ function edit(uid,data,sql,callback){
 	}],
 	function(err){
 		if(err){
-			console.log(err);
+			console.log('Contest.Edit:ERR:'+err);
 			callback('fail');
 		}else
 			callback('ok');
@@ -153,7 +153,7 @@ function grade(uid,data,sql,callback){
 		var inputobj=JSON.parse(data);
 		cid=inputobj.cid;
 	}catch(e){
-		console.log('Error:'+e);
+		console.log('Contest.Grade:ERR:'+e);
 	}
 	async.waterfall([
 	function(callback){
@@ -161,13 +161,13 @@ function grade(uid,data,sql,callback){
 	},
 	function(sqlc,callback){
 		if(isprofiling)
-			console.log('A'+JSON.stringify(new Date()));
-		sqlc.query('SELECT submit.pid,submit.uid,submit.sid,username,status,grade,problem_title FROM xjos.submit JOIN xjos.user ON user.uid=submit.uid JOIN xjos.problem ON submit.pid=problem.pid WHERE sid IN (SELECT submit.sid FROM xjos.contest_submit JOIN xjos.submit ON submit.sid=contest_submit.sid WHERE cid='+sqlc.escape(cid)+' AND islast=1)',
+			console.log('Contest.Grade.Prof.A:'+JSON.stringify(new Date()));
+		sqlc.query('SELECT submit.pid,submit.uid,submit.sid,username,status,grade,problem_title FROM xjos.submit JOIN xjos.user ON user.uid=submit.uid JOIN xjos.problem ON submit.pid=problem.pid JOIN xjos.contest_submit ON contest_submit.sid=submit.sid WHERE islast=1 AND cid='+sqlc.escape(cid),
 		function(err,rows){
 			callback(err,rows);
 			sqlc.end();
 			if(isprofiling)
-				console.log('B'+JSON.stringify(new Date()));
+				console.log('Contest.Grade.Prof.B:'+JSON.stringify(new Date()));
 		});
 	},
 	function(rows,cb){
@@ -176,7 +176,7 @@ function grade(uid,data,sql,callback){
 	}],
 	function(err){
 		if(err)
-			console.log(err);
+			console.log('Contest.Grade:ERR2'+err);
 	});
 }
 function regcontest(uid,data,sql,callback){//S1
@@ -226,7 +226,7 @@ function regcontest(uid,data,sql,callback){//S1
 		function(err){
 			if(err){
 				callback('err');
-				console.log('Regcontest:'+err);
+				console.log('Contest.Reg:ERR:'+err);
 			}else{
 				callback('ok');
 			}
