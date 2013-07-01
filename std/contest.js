@@ -20,11 +20,12 @@ exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 		addprob(conn.uid,data,sql,callback);
 	}else if(handle==='delprob'){
 		delprob(conn.uid,data,sql,callback);
+	}else if(handle==='add'){
+		add(conn.uid,data,sql,callback);
 	}
 }
 
 var isprofiling=true;
-
 function delprob(uid,data,sql,callback){
 	var pobj;
 	try{
@@ -111,6 +112,9 @@ function edit(uid,data,sql,callback){
 	var cid;
 	try{
 		var t=JSON.parse(data);
+		if(t.order=='start_time'||t.order=='end_time'){
+			t.data=new Date(t.data);
+		}
 		pobj={};
 		pobj[t.order]=t.data;
 		cid=t.cid;
@@ -190,7 +194,9 @@ function regcontest(uid,data,sql,callback){//S1
 			console.log('ERR');
 			return;
 		}
-		obj.start_time=new Date((new Date(obj.start_time)).getTime()+8*3600*1000);
+		//obj.start_time=new Date((new Date(obj.start_time)).getTime()+8*3600*1000);
+		obj.start_time=new Date(obj.start_time);
+		obj.end_time=new Date(obj.end_time);
 		var mkobk={'cid':obj.cid,'type':obj.type,'uid':uid,'start_time':obj.start_time,'end_time':obj.end_time,'reg_time':new Date()};
 		async.waterfall([
 		function(callback){
@@ -342,7 +348,7 @@ function info(uid,data,sql,callback){//S2
 		});
 	},
 	function(sqlc,cobj,cb){
-		sqlc.query("SELECT xjos.problem.pid,problem_title,levelt,elo,contest_problem_rank FROM xjos.problem INNER JOIN xjos.contest_problem ON xjos.contest_problem.pid=xjos.problem.pid WHERE cid="+sqlc.escape(cid)+' ORDER BY contest_problem_rank ASC',
+		sqlc.query("SELECT xjos.problem.pid,problem_title,levelt,elo,contest_problem_rank FROM xjos.contest_problem LEFT JOIN xjos.problem ON xjos.contest_problem.pid=xjos.problem.pid WHERE cid="+sqlc.escape(cid)+' ORDER BY contest_problem_rank ASC',
 		function(err,rows){
 			if(cobj['status']!=0){
 				cb(err,sqlc,cobj,rows);
@@ -424,3 +430,65 @@ function info(uid,data,sql,callback){//S2
 			console.log('List Grade Err:'+err);
 	});
 }*/
+function add(uid,data,sql,callback){
+	var name,description,type,start_time,end_time,levelt;
+	var retobj={'status':'err'}
+	try{
+		var tobj=JSON.parse(data);
+		name=tobj.name;
+		description=tobj.description;
+		type=tobj.type;
+		start_time=tobj.startTime;
+		end_time=tobj.endTime;
+		if(start_time==undefined){
+			start_time=new Date();
+			start_time.setHours(13);
+			start_time.setMinutes(0);
+			start_time.setSeconds(0);
+			start_time.setMilliseconds(0);
+		}else{
+			start_time=new Date(start_time);
+		}
+		if(end_time==undefined){
+			end_time=new Date();
+			end_time.setHours(17);
+			end_time.setMinutes(0);
+			end_time.setSeconds(0);
+			end_time.setMilliseconds(0);
+		}else{
+			end_time=new Date(end_time);
+		}
+		levelt=tobj.level;
+	}catch(e){
+		console.log(e);
+		return;
+	}
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		var insobj={'name':name,'description':description,'start_time':start_time,'end_time':end_time,'levelt':levelt,'old_info':''};
+		sqlc.query('INSERT INTO xjos.contest SET '+sqlc.escape(insobj),
+		function(err,rows){
+			if(err){
+				callback(err);
+			}else{
+				callback(err,rows.insertId);
+			}
+			sqlc.end();
+		});
+	},
+	function(cid,cb){
+		retobj['status']='ok';
+		retobj.cid=cid;
+		callback(JSON.stringify(retobj));
+		cb();
+	}],
+	function(err){
+		if(err){
+			callback(JSON.stringify(retobj));
+			console.log('Addcontest'+err);
+		}
+	});
+}

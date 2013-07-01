@@ -1,6 +1,9 @@
 var isok=require('../lib/isok').isok;
 var async=require('async');
+var xjsec=require('./libcrypt');
+
 exports.main=function(conn,handle,data,sql,callback){
+	if(isNaN(conn.uid))return;
 	isok(conn.uid,'view_user',sql,
 	function(ct){
 		if(ct==0)return;
@@ -25,7 +28,66 @@ exports.main=function(conn,handle,data,sql,callback){
 	});
 	if(handle==='editself'){
 		editself(conn.uid,data,sql,callback);
+	}else if(handle==='editpassword'){
+		editpassword(conn.uid,data,sql,callback);
 	}
+}
+function editpassword(uid,data,sql,callback){
+	var oldpw,newpw;
+	try{
+		var tobj=JSON.parse(data);
+		oldpw=tobj.oldPassword;
+		newpw=tobj.newPassword;
+		if(oldpw.length!=32)return;
+		if(newpw.length!=32)return;
+	}catch(e){
+		console.log('ERREditPassword:'+e);
+		return;
+	}
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('SELECT password,password_salt FROM xjos.user WHERE uid='+sqlc.escape(uid),
+		function(err,rows){
+			if(err)
+				callback(err);
+			else if(rows.length<1)
+				callback('XJOS under ATTACK:Trying to change password for a unexist user!');
+			else
+				callback(err,rows[0],sqlc);
+		});
+	},
+	function(pwobj,sqlc,cb){
+		xjsec.verifykey(oldpw,pwobj.password_salt,function(dk){
+			if(dk==pwobj.password){
+				cb(null,sqlc);
+			}else{
+				callback('Password Wrong');
+				cb('Password Wrong UID:'+uid);
+			}
+		});
+	},
+	function(sqlc,cb){
+		xjsec.genkey(newpw,
+		function(salt,dk){
+			cb(null,sqlc,dk,salt);
+		});
+	},
+	function(sqlc,password,password_salt,cb){
+		sqlc.query('UPDATE xjos.user SET password='+sqlc.escape(password)+', password_salt='+sqlc.escape(password_salt),function(err,rows){
+			cb(err);
+			sqlc.end();
+		})
+	},
+	function(cb){
+		callback('ok');
+	}],
+	function(err){
+		if(err)
+			console.log(err);
+	});
 }
 //Get samples for one problem
 function sample(uid,data,sql,callback){

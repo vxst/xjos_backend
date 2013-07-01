@@ -127,7 +127,7 @@ var dohandle=function(wsstr,conn,mysql,eventbus){
 		var t=wsstr.split('_',2);
 		if(t[1]===undefined)return;
 		var h=t[1].split('.',2);
-		//console.log(h);
+		console.log(wsstr);
 		if(t[0]==undefined||h[0]==undefined||h[1]==undefined){
 
 			
