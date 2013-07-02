@@ -76,7 +76,7 @@ function editpassword(uid,data,sql,callback){
 		});
 	},
 	function(sqlc,password,password_salt,cb){
-		sqlc.query('UPDATE xjos.user SET password='+sqlc.escape(password)+', password_salt='+sqlc.escape(password_salt),function(err,rows){
+		sqlc.query('UPDATE xjos.user SET password='+sqlc.escape(password)+', password_salt='+sqlc.escape(password_salt)+' WHERE uid='+sqlc.escape(uid),function(err,rows){
 			cb(err);
 			sqlc.end();
 		})

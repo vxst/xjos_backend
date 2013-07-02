@@ -62,6 +62,16 @@ function upgradepassword(uid,data,sql,callback){
 		});
 	},
 	function(sqlc,uid,callback){
+		sqlc.query('DELETE FROM xjos.application_user WHERE uid='+sqlc.escape(uid),function(err,rows){
+			callback(err,sqlc,uid);
+		});
+	},
+	function(sqlc,uid,callback){
+		sqlc.query('DELETE FROM xjos.user_priv_table WHERE uid='+sqlc.escape(uid),function(err,rows){
+			callback(err,sqlc,uid);
+		});
+	},
+	function(sqlc,uid,callback){
 		var cuteobj={'aid':1,'uid':uid,'status':1};
 		sqlc.query('INSERT INTO xjos.application_user SET '+sqlc.escape(cuteobj),
 		function(err,rows){

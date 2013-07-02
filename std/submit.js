@@ -30,8 +30,9 @@ function findcontest(uid,pid,sql,callback){//S1
 		sql.getConnection(callback);
 	},
 	function(sqlc,callback){
-		sqlc.query('SELECT user_contest.cid,contest.type FROM xjos.user_contest NATURAL JOIN xjos.contest_problem,xjos.contest WHERE contest_problem.pid='+sqlc.escape(pid)+' AND user_contest.uid='+sqlc.escape(uid)+' AND user_contest.start_time<NOW() AND user_contest.end_time>NOW()',
+		sqlc.query('SELECT user_contest.cid,contest.type,user_contest.type AS uctype FROM xjos.user_contest JOIN xjos.contest_problem ON contest_problem.cid=user_contest.cid JOIN xjos.contest ON contest.cid=user_contest.cid WHERE contest_problem.pid='+sqlc.escape(pid)+' AND user_contest.uid='+sqlc.escape(uid)+' AND ((user_contest.start_time<NOW() AND user_contest.end_time>NOW() AND user_contest.type="virtual")OR(contest.start_time<NOW() AND contest.end_time>NOW() AND user_contest.type="real")) ',
 		function(err,rows){
+//			console.log('FindContest:'+JSON.stringify(rows));
 			callback(err,rows);
 			sqlc.end();
 		});
@@ -70,14 +71,14 @@ function list(uid,data,sql,callback){//S1
 		});
 	},
 	function(rowstatus,sqlc,cb){
-		sqlc.query('SELECT sid FROM xjos.contest_submit NATURAL JOIN xjos.user_contest WHERE uid='+sqlc.escape(uid)+' AND start_time<NOW() AND end_time>NOW() ORDER BY sid ASC',
+		sqlc.query('SELECT sid FROM xjos.contest_submit JOIN xjos.user_contest ON user_contest.cid=contest_submit.cid JOIN xjos.contest ON contest.cid=contest_submit.cid WHERE uid='+sqlc.escape(uid)+' AND ((user_contest.start_time<NOW() AND user_contest.end_time>NOW() AND user_contest.type="virtual") OR (contest.start_time<NOW() AND contest.end_time>NOW() AND user_contest.type="real")) ORDER BY sid ASC',
 		function(err,rows){
 			cb(err,rows,rowstatus);
 			sqlc.end();
 		});
 	},
 	function(sidarr,sbmarr,cb){
-		console.log(sidarr);
+		//console.log(sidarr);
 		for(var i=0,j=0;i<sbmarr.length&&j<sidarr.length;i++){
 			while(j<sidarr.length&&sbmarr[i].sid>sidarr[j].sid)
 				j++;
@@ -131,8 +132,9 @@ function single(uid,data,sql,callback){
 		});
 	},
 	function(sqlc,cuteobj,cb){
-		sqlc.query('SELECT sid FROM xjos.user_contest NATURAL JOIN xjos.contest_submit WHERE uid='+sqlc.escape(uid)+' AND start_time<NOW() AND end_time> NOW() ORDER BY sid ASC',
+		sqlc.query('SELECT sid FROM xjos.user_contest JOIN xjos.contest_submit ON contest_submit.cid=user_contest.cid JOIN xjos.contest ON contest.cid=user_contest.cid WHERE uid='+sqlc.escape(uid)+' AND ((user_contest.start_time<NOW() AND user_contest.end_time> NOW() AND user_contest.type="virtual") OR (contest.start_time<NOW() AND contest.end_time>NOW() AND user_contest.type="real")) ORDER BY sid ASC',
 		function(err,rows){
+			if(err)console.log(err);
 			cuteobj.isincontest=false;
 			for(var i=0;i<rows.length;i++){
 				if(rows[i].sid==data){
@@ -204,7 +206,7 @@ function submit(uid,data,sql,callback,eventbus){//S2
 		});
 	},
 	function(cidarr,sqlc,id,callback){
-		async.each(cidarr,
+		async.eachSeries(cidarr,
 		function(item,callback){
 			var qobj={'cid':item.cid,'sid':id,'islast':1};
 			async.waterfall([
@@ -212,12 +214,12 @@ function submit(uid,data,sql,callback,eventbus){//S2
 				sql.getConnection(callback);
 			},
 			function(sqlc,callback){
-				sqlc.query('LOCK TABLES xjos.contest_submit WRITE',function(err,rows){
+				sqlc.query('LOCK TABLES xjos.contest_submit WRITE,xjos.submit WRITE',function(err,rows){
 					callback(err,sqlc);
 				});
 			},
 			function(sqlc,callback){
-				sqlc.query('UPDATE xjos.contest_submit JOIN xjos.submit ON submit.sid=contest_submit.sid SET islast=0 WHERE cid='+item.cid+' AND pid='+q.pid,function(err,rows){
+				sqlc.query('UPDATE xjos.contest_submit JOIN xjos.submit ON submit.sid=contest_submit.sid SET islast=0 WHERE cid='+item.cid+' AND pid='+q.pid+' AND uid='+uid,function(err,rows){
 					callback(err,sqlc);
 				});
 			},
@@ -280,7 +282,7 @@ function submit(uid,data,sql,callback,eventbus){//S2
 					var retobj={'sid':zid,'problem_data_id':dataset[1],'result':dataset[2],'time':dataset[3],'memory':dataset[4],'grade':dataset[5],'infomation':rows[0]['infoboard']};
 					sqlc.end();
 //					console.log(isOkToRetStatus);
-					if(isOkToRetStatus)
+					if(isOkToRetStatus||dataset[1]==-1)
 						callback(JSON.stringify(retobj));
 				});
 			});

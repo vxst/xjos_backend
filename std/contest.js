@@ -8,6 +8,8 @@ exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 		list(conn.uid,data,sql,callback);
 	}else if(handle==='info'){
 		info(conn.uid,data,sql,callback);
+	}else if(handle==='minfo'){
+		minfo(conn.uid,data,sql,callback);
 	}else if(handle==='regcontest'){
 		regcontest(conn.uid,data,sql,callback);
 	}else if(handle==='delete'){
@@ -25,7 +27,7 @@ exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 	}
 }
 
-var isprofiling=true;
+var isprofiling=false;
 function delprob(uid,data,sql,callback){
 	var pobj;
 	try{
@@ -61,6 +63,7 @@ function delprob(uid,data,sql,callback){
 		}
 	});
 }
+
 function addprob(uid,data,sql,callback){
 	var pobj;
 	try{
@@ -107,6 +110,7 @@ function addprob(uid,data,sql,callback){
 		}
 	});
 }
+
 function edit(uid,data,sql,callback){
 	var pobj;
 	var cid;
@@ -141,6 +145,7 @@ function edit(uid,data,sql,callback){
 			callback('ok');
 	});
 }
+
 function deletecontest(uid,data,sql,callback){//S0
 	try{
 		if(isNaN(data)){
@@ -151,6 +156,7 @@ function deletecontest(uid,data,sql,callback){//S0
 	}catch(e){
 	}
 }
+
 function grade(uid,data,sql,callback){
 	var cid;
 	try{
@@ -162,6 +168,21 @@ function grade(uid,data,sql,callback){
 	async.waterfall([
 	function(callback){
 		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('SELECT contest.cid FROM xjos.user_contest JOIN xjos.contest ON user_contest.cid=contest.cid WHERE contest.cid='+sqlc.escape(cid)+' AND user_contest.uid='+sqlc.escape(uid)+' AND ((user_contest.start_time<NOW() AND user_contest.end_time>NOW() AND user_contest.type="virtual") OR (contest.start_time<NOW() AND contest.end_time>NOW() AND user_contest.type="real")) ',
+		function(err,rows){
+			if(err){
+				callback(err)
+				return;
+			}
+			if(rows.length>0){
+				callback('It\'s a processing contest');
+				sqlc.end();
+				return;
+			}
+			callback(err,sqlc);
+		});
 	},
 	function(sqlc,callback){
 		if(isprofiling)
@@ -253,7 +274,11 @@ function list(uid,data,sql,callback){//S2
 			sql.getConnection(cb);
 		},
 		function(sqlc,cb){
+			if(isprofiling)
+				console.log(JSON.stringify(new Date()));
 			sqlc.query("SELECT cid,name,type,start_time,end_time,TIMEDIFF(end_time,start_time) AS length,((end_time<NOW()) + (start_time<NOW())) AS status,levelt AS level FROM xjos.contest ORDER BY start_time DESC",function(err,rows){
+				if(isprofiling)
+					console.log(JSON.stringify(new Date()));
 				if(!err)
 					callback(JSON.stringify(rows));
 				sqlc.end();
@@ -322,7 +347,7 @@ function list(uid,data,sql,callback){//S2
 		}
 	}
 }
-function info(uid,data,sql,callback){//S2
+function info(uid,data,sql,callback){//S1
 	if(uid==null){
 		console.log("ERR:STD-CONTEST-GETP:Not Login");
 		return;
@@ -348,12 +373,12 @@ function info(uid,data,sql,callback){//S2
 		});
 	},
 	function(sqlc,cobj,cb){
-		sqlc.query("SELECT xjos.problem.pid,problem_title,levelt,elo,contest_problem_rank FROM xjos.contest_problem LEFT JOIN xjos.problem ON xjos.contest_problem.pid=xjos.problem.pid WHERE cid="+sqlc.escape(cid)+' ORDER BY contest_problem_rank ASC',
+		sqlc.query("SELECT xjos.problem.pid,problem_title,levelt,elo,contest_problem_rank FROM xjos.contest_problem JOIN xjos.problem ON xjos.contest_problem.pid=xjos.problem.pid WHERE cid="+sqlc.escape(cid)+' ORDER BY contest_problem_rank ASC',
 		function(err,rows){
 			if(cobj['status']!=0){
 				cb(err,sqlc,cobj,rows);
 			}else{
-				cb(err,sqlc,cobj,null);
+				cb(err,sqlc,cobj,[]);
 			}
 		});
 	},
@@ -468,7 +493,7 @@ function add(uid,data,sql,callback){
 		sql.getConnection(callback);
 	},
 	function(sqlc,callback){
-		var insobj={'name':name,'description':description,'start_time':start_time,'end_time':end_time,'levelt':levelt,'old_info':''};
+		var insobj={'name':name,'description':description,'start_time':start_time,'end_time':end_time,'levelt':levelt,'type':type,'old_info':''};
 		sqlc.query('INSERT INTO xjos.contest SET '+sqlc.escape(insobj),
 		function(err,rows){
 			if(err){
@@ -490,5 +515,57 @@ function add(uid,data,sql,callback){
 			callback(JSON.stringify(retobj));
 			console.log('Addcontest'+err);
 		}
+	});
+}
+function minfo(uid,data,sql,callback){//S1
+	if(uid==null){
+		console.log("ERR:STD-CONTEST-GETP:Not Login");
+		return;
+	}
+	var cid=parseInt(data);
+	if(cid==NaN){
+		console.log("ERR:STD-CONTEST-GETP:cid:"+data);
+		return;
+	}
+	async.waterfall([
+	function(cb){
+		sql.getConnection(cb);
+	},
+	function(sqlc,cb){
+		sqlc.query('SELECT cid,name,type,start_time,end_time,TIMEDIFF(end_time,start_time) AS length,((end_time<NOW()) + (start_time<NOW())) AS status,levelt AS level FROM xjos.contest WHERE cid='+sqlc.escape(cid),
+		function(err,rows){
+			if(rows.length>0)
+				cb(err,sqlc,rows[0]);
+			else{
+				cb('NoContest')
+				sqlc.end();
+			}
+		});
+	},
+	function(sqlc,cobj,cb){
+		sqlc.query("SELECT xjos.problem.pid,problem_title,levelt,elo,contest_problem_rank FROM xjos.contest_problem JOIN xjos.problem ON xjos.contest_problem.pid=xjos.problem.pid WHERE cid="+sqlc.escape(cid)+' ORDER BY contest_problem_rank ASC',
+		function(err,rows){
+			cb(err,sqlc,cobj,rows);
+		});
+	},
+	function(sqlc,cobj,probs,cb){
+		sqlc.query('SELECT ucid,type,reg_time,start_time FROM xjos.user_contest WHERE cid='+sqlc.escape(cid),
+		function(err,rows){
+			cb(err,sqlc,cobj,probs,rows);
+		});
+	},
+	function(sqlc,cobj,probs,regs,cb){
+		cobj.probs=probs;
+		cobj.regs=regs;
+		sqlc.end();
+		cb(null,cobj);
+	},
+	function(cobj,cb){
+		callback(JSON.stringify(cobj));
+		cb();
+	}],
+	function(err){
+		if(err)
+			console.log("ERR:STD-CONTEST-GETP:"+JSON.stringify(err));
 	});
 }
