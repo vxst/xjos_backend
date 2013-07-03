@@ -17,6 +17,46 @@ exports.main=function(conn,handle,data,sql,callback){
 			}
 		}
 	});
+	isok(conn.uid,'del_problem',sql,
+	function(ct){
+		if(ct!=0){
+			if(handle==='del'){
+				del(conn.uid,data,sql,callback);
+			}
+		}
+	});
+}
+function del(uid,data,sql,callback){
+	var pid=null;
+	try{
+		var qobj=JSON.parse(data);
+		pid=qobj.pid;
+		if(isNaN(pid)){
+			console.log('DELETE NOT NUMBER PID');
+			return;
+		}
+	}catch(e){
+		console.log(e);
+		return;
+	}
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('DELETE FROM xjos.problem WHERE pid='+sqlc.escape(pid),function(err,rows){
+			sqlc.end();
+			callback(err);
+		});
+	},
+	function(cb){
+		callback(JSON.stringify({'status':'ok'}));
+		cb();
+	}],
+	function(err){
+		if(err)
+			console.log(err);
+	});
 }
 function view(uid,data,sql,callback){
 	sql.getConnection(function(err,sqlconn){
