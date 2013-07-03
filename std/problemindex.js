@@ -1,5 +1,6 @@
 var async=require('async'),
-    isok=require('../lib/isok').isok;
+    isok=require('../lib/isok').isok,
+    libuser=require('./libuser');
 exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 	isok(conn.uid,'view_problem',sql,
 	function(ct){
@@ -87,14 +88,30 @@ function getlevel(uid,data,sql,callback){
 		return;
 	}
 	var k=parseInt(data);
-	sql.getConnection(
-	function(err,sqlconn){
-		sqlconn.query('SELECT pid,problem_title,levelt,elo FROM xjos.problem WHERE problem_title!="" AND levelt='+sqlconn.escape(k),
+	async.waterfall([
+	function(callback){
+		libuser.getlevel(uid,sql,function(lvl){
+			callback(null,lvl);
+		});
+	},
+	function(level,callback){
+		if(level<k)
+			callback('Want a problem level higher than user\'s');
+		else
+			sql.getConnection(callback);
+	},
+	function(sqlc,cb){
+		sqlc.query('SELECT pid,problem_title,levelt,elo FROM xjos.problem WHERE problem_title!="" AND levelt='+sqlc.escape(k),
 		function(err,rows){
 //			fakerows(rows);
 			callback(JSON.stringify(rows));
-			sqlconn.end();
+			sqlc.end();
+			cb();
 		});
+	}],
+	function(err){
+		if(err)
+			console.log('Problemindex.GetLevel:ERR:'+err);
 	});
 }
 function search(uid,data,sql,callback){
@@ -113,8 +130,53 @@ function search(uid,data,sql,callback){
 		callback('OBJECT_CHECK_FAILED');
 		return;
 	}
-	sql.getConnection(function(err,sqlconn){
+	async.waterfall([
+	function(callback){
+		libuser.getlevel(uid,sql,
+		function(lvl){
+			callback(null,lvl);
+		});
+	},
+	function(level,callback){
+		sql.getConnection(function(err,sqlc){callback(err,sqlc,level)});
+	},
+	function(sqlc,level,callback){
 		var data=keyobj.keyword;
+		if(data.length>0){
+			var querystr="SELECT pid,problem_title,levelt,elo FROM xjos.problem WHERE ("
+			for(var i=0;i<data.length;i++){
+				querystr+=" pid="+sqlc.escape(data[i])+" OR ";
+			}
+			for(var i=0;i<data.length;i++){
+				querystr+=' LOWER(problem_title) LIKE CONCAT("%",LOWER('+sqlc.escape(data[i])+'),"%") OR ';
+			}
+			for(var i=0;i<data.length;i++){
+				querystr+=' LOWER(problem_description) LIKE CONCAT("%",LOWER('+sqlc.escape(data[i])+'),"%") ';
+				if(i!=data.length-1)
+					querystr+=' OR ';
+			}
+			querystr+=') AND levelt<='+sqlc.escape(level);
+
+			sqlc.query(querystr,function(err,rows){
+				callback(err,rows);
+				sqlc.end();
+			});
+		}else{
+			sqlc.query('SELECT pid,problem_title,levelt,elo FROM xjos.problem WHERE levelt<='+sqlc.escape(level),
+			function(err,rows){
+				callback(err,rows)
+				sqlc.end();
+			});
+		}
+	},
+	function(rows,cb){
+		callback(JSON.stringify(rows));
+	}],
+	function(err){
+		if(err)
+			console.log('Problemindex.Search:ERR:'+err);
+	});
+/*	sql.getConnection(function(err,sqlconn){
 		if(data.length>0){
 			sqlconn.query("SELECT pid,problem_title,levelt,elo FROM xjos.problem WHERE pid ="+sqlconn.escape(data)+" OR LOWER(problem_title) LIKE CONCAT('%',LOWER("+sqlconn.escape(data)+"),'%') OR LOWER(problem_description) LIKE CONCAT('%',LOWER("+sqlconn.escape(data)+"),'%') OR pid IN (SELECT problem_group_tag.pid FROM xjos.problem_group_tag WHERE problem_group_id IN(SELECT problem_group_id FROM xjos.problem_group WHERE LOWER(problem_group_content)=LOWER("+sqlconn.escape(data)+")))"+"LIMIT "+sqlconn.escape(keyobj.start)+","+sqlconn.escape(keyobj.length),
 			function(err,rows){
@@ -130,5 +192,5 @@ function search(uid,data,sql,callback){
 				sqlconn.end();
 			});
 		}
-	});
+	});*/
 }

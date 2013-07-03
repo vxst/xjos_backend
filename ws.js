@@ -31,6 +31,7 @@ exports.start=function(server,sqlpool,wshandler,eventbus,simpledb){
 	var connectionpool=new Array();//,counter=0;
 	simpledb.connectionCountDB={};
 	wsServer.on('request', function(request) {
+		var ip=request.remoteAddress;
 		if (!originIsAllowed(request.origin)) {
 			// Make sure we only accept requests from an allowed origin
 			request.reject();
@@ -55,11 +56,14 @@ exports.start=function(server,sqlpool,wshandler,eventbus,simpledb){
 			return;
 		}
 
+		console.log((new Date()) + ' Connection accepted:IP:'+request.remoteAddress);
+
 		var connection = request.accept('xjpipeline-protocol', request.origin);
 		simpledb.connectionCountDB[request.remoteAddress]+=1;
-		connection.uid=undefined;
 
-		console.log((new Date()) + ' Connection accepted.');
+		connection.uid=undefined;
+		connection.ip=ip;
+
 
 		connection.on('message', function(message) {
 			var ktime=Math.round((new Date()).getTime()/5000);

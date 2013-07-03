@@ -108,7 +108,7 @@ function single(uid,data,sql,callback){
 		sql.getConnection(callback);
 	},
 	function(sqlc,cb){
-		sqlc.query('SELECT problem.problem_title,submit.* FROM xjos.submit INNER JOIN xjos.problem ON xjos.problem.pid=xjos.submit.pid WHERE sid='+sqlc.escape(data)+' AND uid='+sqlc.escape(uid),
+		sqlc.query('SELECT problem.problem_title,submit.* FROM xjos.submit JOIN xjos.problem ON xjos.problem.pid=xjos.submit.pid WHERE sid='+sqlc.escape(data)+' AND uid='+sqlc.escape(uid),
 		function(err,rows){
 			if(err){
 				callback('System Error');
@@ -134,13 +134,12 @@ function single(uid,data,sql,callback){
 	function(sqlc,cuteobj,cb){
 		sqlc.query('SELECT sid FROM xjos.user_contest JOIN xjos.contest_submit ON contest_submit.cid=user_contest.cid JOIN xjos.contest ON contest.cid=user_contest.cid WHERE uid='+sqlc.escape(uid)+' AND ((user_contest.start_time<NOW() AND user_contest.end_time> NOW() AND user_contest.type="virtual") OR (contest.start_time<NOW() AND contest.end_time>NOW() AND user_contest.type="real")) ORDER BY sid ASC',
 		function(err,rows){
-			if(err)console.log(err);
+			if(err)
+				console.log(err);
 			cuteobj.isincontest=false;
-			for(var i=0;i<rows.length;i++){
-				if(rows[i].sid==data){
+			for(var i=0;i<rows.length;i++)
+				if(rows[i].sid==data)
 					cuteobj.isincontest=true;
-				}
-			}
 			cb(null,cuteobj,sqlc);
 		});
 	},

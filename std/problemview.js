@@ -1,5 +1,6 @@
 var isok=require('../lib/isok').isok;
 var async=require('async');
+var libuser=require('./libuser');
 exports.main=function(conn,handle,data,sql,callback){
 	isok(conn.uid,'view_problem',sql,
 	function(ct){
@@ -44,7 +45,12 @@ function view(uid,data,sql,callback){
 		sql.getConnection(callback);
 	},
 	function(sqlc,callback){
-		sqlc.query("SELECT pid,problem_title,problem_description,problem_input,problem_output,problem_hint,elo FROM xjos.problem WHERE pid="+sqlc.escape(pid),
+		libuser.getlevel(uid,sql,function(level){
+			callback(null,sqlc,level);
+		});
+	},
+	function(sqlc,level,callback){
+		sqlc.query("SELECT pid,problem_title,problem_description,problem_input,problem_output,problem_hint,elo FROM xjos.problem WHERE pid="+sqlc.escape(pid)+' AND levelt<='+sqlc.escape(level),
 		function(err,rows){
 			if(err){
 				console.log('ProbViewErr:'+err);
@@ -53,7 +59,7 @@ function view(uid,data,sql,callback){
 			}else if(rows.length>0){
 				callback(err,sqlc,rows[0]);
 			}else{
-				callback('Length Wrong');
+				callback('ProbView NoPriv/NoProb');
 			}
 		});
 	},
