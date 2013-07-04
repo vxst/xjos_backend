@@ -2,18 +2,31 @@ var uncompress=require('../tools/uncompresser').main
 	,makepairs=require('../tools/makepairs').main
 	,async=require('async')
 	,fs=require('fs')
-	,crypto=require('crypto');
+	,crypto=require('crypto')
+	,isok=require('../lib/isok');
 
 function makeuuid(){
 	return crypto.pseudoRandomBytes(16).toString('hex');
 }
 exports.main=function(path,obj,uid,sql,pscb){
 	console.log("Papa:"+path);
+	if(isNaN(obj.uid))return;
+	if(isNaN(obj.pid))return;
 	async.waterfall([
 	function(callback){
+		isok(uid,'submit_problem',sql,function(ct){
+			if(ct!=0){
+				callback();
+			}else{
+				callback('POST_SUBMIT:NO PRIV');
+			}
+		});
+	},
+	function(callback){
 		fs.exist('/tmp/xjosuploadtmp/',function(isexist){
-			if(isexist)callback();
-			else{
+			if(isexist){
+				callback();
+			}else{
 				fs.mkdir('/tmp/xjosuploadtmp',function(err){
 					callback(err);
 				});
@@ -61,8 +74,8 @@ exports.main=function(path,obj,uid,sql,pscb){
 			},
 			function(sqlc,callback){
 				var inf=excdir+item.input,outf=excdir+item.output;
-				var t={'problem_data_rank':item.rank,'problem_data_input':fs.readFileSync(inf),'problem_data_output':fs.readFileSync(outf),'pid':obj.pid};
-				sqlc.query('INSERT INTO xjos.problem_data SET '+sqlc.escape(t),
+				var t={'problem_data_rank':item.rank,'problem_data_input':fs.readFileSync(inf),'problem_data_output':fs.readFileSync(outf),'pid':obj.pid,'uid':obj.uid};
+				sqlc.query('INSERT INTO xjos.problem_data_tjda SET '+sqlc.escape(t),
 				function(err,rows){
 					sqlc.end();
 					if(err){

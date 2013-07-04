@@ -111,10 +111,12 @@ function single(uid,data,sql,callback){
 		sqlc.query('SELECT problem.problem_title,submit.* FROM xjos.submit JOIN xjos.problem ON xjos.problem.pid=xjos.submit.pid WHERE sid='+sqlc.escape(data)+' AND uid='+sqlc.escape(uid),
 		function(err,rows){
 			if(err){
+				sqlc.end();
 				callback('System Error');
 				cb(err);
 			}else if(rows.length<1){
-				callback('{err="no result"}');
+				sqlc.end();
+				callback(JSON.stringify({'err':'no result'}));
 				cb('No result');
 			}else{
 				destatus(rows);
@@ -198,6 +200,7 @@ function submit(uid,data,sql,callback,eventbus){//S2
 	function(cidarr,sqlc,callback){
 		sqlc.query('INSERT INTO xjos.submit SET ?',subobj,function(err,res){
 			if(err){
+				sqlc.end();
 				callback('Submit SQL Insert Fail');
 			}else{
 				callback(err,cidarr,sqlc,res.insertId);
@@ -246,10 +249,11 @@ function submit(uid,data,sql,callback,eventbus){//S2
 	},
 	function(cidarr,sqlc,id,callback){
 		sqlc.query('SELECT problem_data_id,problem_data_method,problem_data_score,problem_data_time,problem_data_memory,problem_data_rank,tester FROM xjos.problem_data WHERE pid=?',q.pid,function(err,res){
-			callback(err,cidarr,id,res,sqlc);
+			callback(err,cidarr,id,res);
+			sqlc.end();
 		});
 	}],
-	function(err,cidarr,zid,zpdidl,sqlc){
+	function(err,cidarr,zid,zpdidl){
 		var ret={sid:zid,datalist:zpdidl,datetime:q.datetime};
 		var isOkToRetStatus=true;
 		if(err){

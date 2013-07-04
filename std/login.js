@@ -20,10 +20,14 @@ function logout(conn,data,sql,callback){
 	if(conn.uid!=undefined){
 		var uid=parseInt(conn.uid);
 		conn.uid=undefined;
-		if(uid!=NaN)
+		if(uid!=NaN){
 			sql.getConnection(function(err,sqlconn){
-				sqlconn.query("DELECT FROM xjos.login_token WHERE uid="+sqlconn.escape(uid),function(err,rows){sqlconn.end();});
+				sqlconn.query("DELECT FROM xjos.login_token WHERE uid="+sqlconn.escape(uid),
+				function(err,rows){
+					sqlconn.end();
+				});
 			});
+		}
 	}
 }
 function search(uid,data,sql,callback){
@@ -104,6 +108,12 @@ function checkisreg(username,sql,cb){
 	sql.getConnection(function(err,sqlconn){	
 		sqlconn.query("SELECT uid FROM xjos.user WHERE username="+sqlconn.escape(username),
 		function(err,rows){
+			if(err){
+				sqlconn.end();
+				cb(false);
+				console.log('Check Is Reg Error:'+err);
+				return;
+			}
 			if(rows.length!=0){
 				sqlconn.end();
 				cb(true);
@@ -126,7 +136,8 @@ function userinfo(uid,data,sql,cb){
 		sqlconn.query("SELECT uid,email,username,realname,nickname,birthday,icon,gold,silver,rating,level,sign FROM xjos.user WHERE uid="+sqlconn.escape(uid),
 		function(err,rows){
 			if(err){
-				console.log(err);
+				console.log('UserInfo Err:'+err);
+				sqlconn.end();
 				return;
 			}
 			cb(JSON.stringify(rows[0]));

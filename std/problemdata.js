@@ -183,6 +183,8 @@ function fetch(uid,data,sql,callback){
 		sqlc.query("SELECT LENGTH(problem_data_input) AS in_length,LENGTH(problem_data_output) AS out_length FROM xjos.problem_data WHERE problem_data_id="+sqlc.escape(pdid),function(err,rows){
 			if(err){
 				sqlc.end();
+				cb(err);
+				return;
 			}
 			cb(err,rows,sqlc);
 		});
@@ -200,6 +202,8 @@ function fetch(uid,data,sql,callback){
 			function(err,rows){
 				if(err){
 					sqlc.end();
+					cb(err);
+					return;
 				}
 				cb(err,rows[0].pin,inl,outl,sqlc);
 			});
@@ -209,6 +213,8 @@ function fetch(uid,data,sql,callback){
 				if(err){
 					sqlc.end();
 					console.log(err);
+					cb(err);
+					return;
 				}
 				cb(err,rows[0].pin,inl,outl,sqlc);
 			});

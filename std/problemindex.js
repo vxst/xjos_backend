@@ -158,14 +158,14 @@ function search(uid,data,sql,callback){
 			querystr+=') AND levelt<='+sqlc.escape(level);
 
 			sqlc.query(querystr,function(err,rows){
-				callback(err,rows);
 				sqlc.end();
+				callback(err,rows);
 			});
 		}else{
 			sqlc.query('SELECT pid,problem_title,levelt,elo FROM xjos.problem WHERE levelt<='+sqlc.escape(level),
 			function(err,rows){
-				callback(err,rows)
 				sqlc.end();
+				callback(err,rows)
 			});
 		}
 	},

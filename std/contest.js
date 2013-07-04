@@ -53,7 +53,12 @@ function delprob(uid,data,sql,callback){
 		sql.getConnection(callback);
 	},
 	function(sqlc,callback){
-		sqlc.query('DELETE FROM xjos.contest_problem WHERE cid='+sqlc.escape(pobj.cid)+' AND pid='+sqlc.escape(pobj.pid),function(err,rows){callback(err);sqlc.end()});}],
+		sqlc.query('DELETE FROM xjos.contest_problem WHERE cid='+sqlc.escape(pobj.cid)+' AND pid='+sqlc.escape(pobj.pid),
+		function(err,rows){
+			sqlc.end();
+			callback(err);
+		});
+	}],
 	function(err){
 		if(err){
 			console.log('Contest.DelProb:ERR:'+err);
@@ -99,7 +104,11 @@ function addprob(uid,data,sql,callback){
 		pobj.contest_problem_rank=ct+1;
 		if(data.rank!=undefined)
 			pobj.contest_problem_rank=data.rank;
-		sqlc.query('INSERT INTO xjos.contest_problem SET '+sqlc.escape(pobj),function(err,rows){callback(err);sqlc.end()});
+		sqlc.query('INSERT INTO xjos.contest_problem SET '+sqlc.escape(pobj),
+		function(err,rows){
+			sqlc.end()
+			callback(err);
+		});
 	}],
 	function(err){
 		if(err){
@@ -133,8 +142,8 @@ function edit(uid,data,sql,callback){
 	function(sqlc,callback){
 		sqlc.query('UPDATE xjos.contest SET '+sqlc.escape(pobj)+' WHERE cid='+sqlc.escape(cid),
 		function(err,rows){
-			callback(err,rows);
 			sqlc.end();
+			callback(err);
 		});
 	}],
 	function(err){
@@ -174,6 +183,7 @@ function grade(uid,data,sql,callback){
 		function(err,rows){
 			if(err){
 				callback(err)
+				sqlc.end();
 				return;
 			}
 			if(rows.length>0){
@@ -242,6 +252,8 @@ function regcontest(uid,data,sql,callback){//S1
 				mkobk.start_time=ctobj.start_time;
 				mkobk.end_time=ctobj.end_time;
 			}else if(mkobk.type!='virtual'){
+				sqlc.end();
+				console.log('RegContest:Contest Type Error');
 				return;
 			}
 			sqlc.query('INSERT INTO xjos.user_contest SET '+sqlc.escape(mkobk),
@@ -275,13 +287,13 @@ function list(uid,data,sql,callback){//S2
 		},
 		function(sqlc,cb){
 			if(isprofiling)
-				console.log(JSON.stringify(new Date()));
+				console.log('Select Contest Start:'+JSON.stringify(new Date()));
 			sqlc.query("SELECT cid,name,type,start_time,end_time,TIMEDIFF(end_time,start_time) AS length,((end_time<NOW()) + (start_time<NOW())) AS status,levelt AS level FROM xjos.contest ORDER BY start_time DESC",function(err,rows){
+				sqlc.end();
 				if(isprofiling)
-					console.log(JSON.stringify(new Date()));
+					console.log('Select Contest Finished:'+JSON.stringify(new Date()));
 				if(!err)
 					callback(JSON.stringify(rows));
-				sqlc.end();
 				cb(err);
 			});
 		}],

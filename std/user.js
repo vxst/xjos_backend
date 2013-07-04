@@ -51,11 +51,13 @@ function editpassword(uid,data,sql,callback){
 	function(sqlc,callback){
 		sqlc.query('SELECT password,password_salt FROM xjos.user WHERE uid='+sqlc.escape(uid),
 		function(err,rows){
-			if(err)
+			if(err){
+				sqlc.end();
 				callback(err);
-			else if(rows.length<1)
+			}else if(rows.length<1){
+				sqlc.end();
 				callback('XJOS under ATTACK:Trying to change password for a unexist user!');
-			else
+			}else
 				callback(err,rows[0],sqlc);
 		});
 	},
@@ -64,6 +66,7 @@ function editpassword(uid,data,sql,callback){
 			if(dk==pwobj.password){
 				cb(null,sqlc);
 			}else{
+				sqlc.end();
 				callback('Password Wrong');
 				cb('Password Wrong UID:'+uid);
 			}
@@ -125,12 +128,14 @@ function view(uid,data,sql,callback){
 		sqlc.query("SELECT uid,username as un,email as em,realname as rn,nickname as nn,birthday as bd,gold,silver,level,rating,priv FROM xjos.user WHERE uid="+sqlc.escape(tuid),
 		function(err,rows){
 			if(err){
+				sqlc.end();
 				console.log(err);
 				return;
 				callback(err);
 			}else if(rows.length>0){
 				callback(err,sqlc,rows[0]);
 			}else{
+				sqlc.end();
 				callback('No such user:UID:'+uid);
 			}
 		});
@@ -139,6 +144,11 @@ function view(uid,data,sql,callback){
 		sqlc.query('SELECT priviledge_table.pvid,priviledge_table.description AS priv,childlen,childnum,childavail FROM xjos.user_priv_table JOIN xjos.priviledge_table ON user_priv_table.pvid=priviledge_table.pvid WHERE uid='+sqlc.escape(tuid),
 		function(err,rows){
 			pobj.privtable=rows;
+			if(err){
+				sqlc.end();
+				callback(err);
+				return;
+			}
 			callback(err,sqlc,pobj);
 		});
 	},
@@ -201,6 +211,7 @@ function edit(uid,data,sql,callback){
 		sqlc.query('UPDATE xjos.user SET '+sqlc.escape(kobj)+' AND uid='+sqlc.escape(zuid),
 		function(err,rows){
 			callback(err);
+			sqlc.end();
 		});
 	},
 	function(cb){
@@ -259,6 +270,7 @@ function editpriv(uid,data,sql,callback){
 		sqlc.query('INSERT INTO xjos.user_priv_table SET '+sqlc.escape(iobj),
 		function(err,rows){
 			callback(err);
+			sqlc.end();
 		})
 	},
 	function(cb){
@@ -270,7 +282,7 @@ function editpriv(uid,data,sql,callback){
 			console.log(err);
 	});
 }
-function deletepriv(uid,data,sql,callback){
+function deletepriv(uid,data,sql,callback){//FIXME:Not Look like good
 	var kobj={},zuid;
 	try{
 		var pobj=JSON.parse(data);
@@ -338,6 +350,7 @@ function deletepriv(uid,data,sql,callback){
 		sqlc.query('DELETE FROM xjos.user_priv_table WHERE uid='+sqlc.escape(kobj.uid)+' AND pvid='+sqlc.escape(kobj.pvid),
 		function(err,rows){
 			callback(err);
+			sqlc.end();
 		})
 	},
 	function(cb){

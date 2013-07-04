@@ -1,4 +1,5 @@
 var zlib=require('zlib');
+var srvlog=require('./lib/log').srvlog;
 var bhandle={};
 bhandle['upload']=require('./std/file').bin;
 var handle={};
@@ -80,7 +81,8 @@ function checkstr(wsstr){
 		if(wsstr[i]=='.')
 			_counterp++;
 	if(_counterp<2){
-		console.log('E:'+_counterp);
+		//console.log('E:'+_counterp);
+		srvlog('B','WSString Check Error');
 		return false;
 	}
 //	console.log("T_T"+_counterz+"+"+_counterp);
@@ -88,7 +90,7 @@ function checkstr(wsstr){
 }
 exports.handle=function(wsbin,conn,mysql,eventbus){
 //	console.log(wsbin);
-	if(wsbin!=="Thank you for accepting me"){
+//	if(wsbin!=="Thank you for accepting me"){
 		try{
 			var buffer=wsbin;
 //			wsstr = zlib.inflateSync(buffer).toString('utf8');
@@ -104,7 +106,7 @@ exports.handle=function(wsbin,conn,mysql,eventbus){
 		}catch(e){
 			console.log(e);
 		}
-	}
+//	}
 }
 function deflatesend(str,conn){
 	zlib.deflateRaw(new Buffer(str,'utf8'),function(err,newbuf){
@@ -119,26 +121,28 @@ function deflatesend(str,conn){
 var dohandle=function(wsstr,conn,mysql,eventbus){
 //	try{
 //	console.log('DO handle! '+wsstr);
+//		console.log(conn.ip+':'+wsstr);
+		srvlog('D','IP:'+conn.ip+' Order:'+wsstr);
 		if(!checkstr(wsstr)&&wsstr!=="Thank you for accepting me"){
-			console.log('Unknown WS Order:'+wsstr);
+			srvlog('B','Unknown WS Order:'+wsstr+' IP:'+conn.ip);
+//			console.log('Unknown WS Order:'+wsstr);
 			conn.send("UNDEF_STRING_ERROR");
 			return;
 		}
 		var t=wsstr.split('_',2);
 		if(t[1]===undefined)return;
 		var h=t[1].split('.',2);
-		console.log(conn.ip+':'+wsstr);
-		if(t[0]==undefined||h[0]==undefined||h[1]==undefined){
-
-			
+		if(t[0]==undefined||h[0]==undefined||h[1]==undefined){			
 			//conn.sendUTF(t[0]+'_@failed_XJPipeline Error:Happy Birthday!');
 			deflatesend(t[0]+'_@failed_XJPipeline Error:Happy Birthday!',conn);
-			console.log('ERR:WSHANDLER:'+wsstr);
+//			console.log('ERR:WSHANDLER:'+wsstr);
+			srvlog('B','Websocket Handler Error:'+wsstr+' IP:'+conn.ip);
 			return;
 		}
 		var dt=wsstr.substr(t[0].length+1+h[0].length+1+h[1].length+1);
 //		console.log('Handle '+h[0]+' Fired');
 		if(handle[h[0]]===undefined){
+			srvlog('B','Undefined Handle Error:'+wsstr+' IP:'+conn.ip);
 			deflatesend(t[0]+'_@failed_XJPipeline Error:Handle Of Service '+h[0]+' is undefined.',conn);
 		}else{
 	//		console.log("FH:"+h[0]);
@@ -150,9 +154,9 @@ var dohandle=function(wsstr,conn,mysql,eventbus){
 //		console.log('Error!-'+JSON.stringify(e));
 //	}
 }
-exports.binhandle=function(wsmsg,conn,mysql,eventbus){
+/*exports.binhandle=function(wsmsg,conn,mysql,eventbus){
 	var k=0;
-/*	if(wsmsg.length<1){
+**	if(wsmsg.length<1){
 		conn.sendUTF('BIN DATA FORMAT ERROR');
 	}
 	var k=wsmsg.readUInt8(0);
@@ -163,7 +167,7 @@ exports.binhandle=function(wsmsg,conn,mysql,eventbus){
 	if(binhandle[conn.bin_arg[k].handler]==undefined){
 		conn.sendUTF('BIN DATA HANDLER ERROR');
 		return;
-	}*/
+	}**
 	if(conn.bin_arg==undefined){
 		console.log('ERR:BANANAS');
 		return;
@@ -179,4 +183,4 @@ exports.binhandle=function(wsmsg,conn,mysql,eventbus){
 	bhandle[conn.bin_arg[k].handler](conn.uid,conn.bin_arg[k].order,conn.bin_arg[k].data,wsmsg,mysql,function(){
 		conn.sendUTF('BIN_'+k+'_ok');
 	});
-}
+}*/

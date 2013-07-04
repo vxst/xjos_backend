@@ -36,7 +36,7 @@ function sample(uid,data,sql,callback){
 			console.log('PSample Error:'+JSON.stringify(err));
 	});
 }
-function view(uid,data,sql,callback){
+function view(uid,data,sql,callback){//FIXME:Not Look Like good
 	if(isNaN(data))return;
 	var pid=parseInt(data);
 
@@ -54,11 +54,13 @@ function view(uid,data,sql,callback){
 		function(err,rows){
 			if(err){
 				console.log('ProbViewErr:'+err);
+				sqlc.end();
 				return;
 				callback('err');
 			}else if(rows.length>0){
 				callback(err,sqlc,rows[0]);
 			}else{
+				sqlc.end();
 				callback('ProbView NoPriv/NoProb');
 			}
 		});

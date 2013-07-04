@@ -36,12 +36,16 @@ function upgradepassword(uid,data,sql,callback){
 	function(sqlc,cb){
 		sqlc.query('SELECT user.uid,user.password FROM xjos.user JOIN tester.users ON user.olduid=users.uid WHERE users.pass='+sqlc.escape(oldPassword)+' AND user.username='+sqlc.escape(userName),function(err,rows){
 			if(err){
+				sqlc.end();
 				cb(err);
 				return;
 			}
-			if(rows.length<1)
+			if(rows.length<1){
+				sqlc.end();
 				cb('upgradePassword:Password wrong');
+			}
 			else if(rows[0].password!='NOT_SET'){
+				sqlc.end();
 				callback('大你一顿');
 				cb('Already changed password');
 			}else

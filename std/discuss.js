@@ -103,8 +103,11 @@ function addtopic(uid,data,sql,callback){
 			function(sqlc,callback){
 				sqlc.query('SELECT MAX(rank) AS mr FROM xjos.discuss_topics WHERE grandfathertid='+sqlc.escape(intobj.grandfathertid),
 				function(err,rows){
-					if(err)
+					if(err){
+						sqlc.end();
 						callback(err);
+						return;
+					}
 					callback(err,sqlc,rows[0].mr);
 				});
 			},
@@ -121,7 +124,7 @@ function addtopic(uid,data,sql,callback){
 			function(sqlc,callback){
 				sqlc.query('INSERT INTO xjos.discuss_topics SET '+sqlc.escape(intobj),
 				function(err,rows){
-					callback(err,sqlc);
+					callback(err);
 					sqlc.end();
 				});
 			}],

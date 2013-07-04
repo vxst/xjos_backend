@@ -1,4 +1,5 @@
-var async=require('async');
+var async=require('async'),
+    srvlog=require('../lib/log').srvlog;
 exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 	if(handle==='list'){
 		list(conn.uid,data,sql,callback);
@@ -11,7 +12,7 @@ function _getRandomProblem(level,callback){
 	sql.getConnection(function(err,sqlc){
 		sqlc.query('SELECT pid FROM xjos.problem WHERE levelt>'+sqlc.escape(level-5)+' AND levelt<'+sqlc.escape(level+5),function(err,rows){
 			if(err){
-				console.log('STD-CB:XJOS Problem Fetch ERROR');
+				srvlog('A':'STD-CB:XJOS Problem Fetch ERROR');
 				return;
 			}
 			callback(rows[Math.round(Math.random()*rows.length)].pid);
@@ -33,7 +34,8 @@ function _makeSimpleContest(level,problemct,diff,callback){
 		});
 	},function(err){
 		if(err){
-			console.log('Contest Make Failed');
+//			console.log('Contest Make Failed');
+			srvlog('A','Contest Make Failed');
 			callback(null);
 		}else{
 			for(var i=0;i<problemct;i++){
@@ -74,7 +76,7 @@ function makeContest(level,problemct,diff,callback){
 	function(callback){
 		_makeSimpleContest(level,problemct,diff,function(pids){
 			if(pids==null){
-				console.log('Contest Can\'t be built; Exiting...');
+				srvlog('A','Contest Can\'t be built; Exiting...');
 			}else{
 				_checkContest(pids,function(ok){
 					isok=ok;
@@ -91,7 +93,8 @@ function makeContest(level,problemct,diff,callback){
 
 function list(uid,data,sql,callback){
 	if(uid==null){
-		console.log("ERR:STD-CONTEST-LIST:Not Login");
+//		console.log("ERR:STD-CONTEST-LIST:Not Login");
+		srvlog('B',"ERR:STD-CONTEST-LIST:Not Login");
 		return;
 	}
 	if(data==='all'){
@@ -109,18 +112,18 @@ function list(uid,data,sql,callback){
 		}],
 		function(err){
 			if(err)
-				console.log("ERR:STD-CONTEST-LIST-ALL:"+err);
+				srvlog('A',"ERR:STD-CONTEST-LIST-ALL:"+err);
 		});
 	}else{
 		var dataobj;
 		try{
 			dataobj=JSON.parse(data);
 			if(dataobj.type==undefined){
-				console.log("ERR:STD-CONTEST-LIST-OBJ:"+data);
+				srvlog('B',"ERR:STD-CONTEST-LIST-OBJ:"+data);
 				return;
 			}
 		}catch(e){
-			console.log("ERR:STD-CONTEST:"+data);
+			srvlog('B':"ERR:STD-CONTEST:"+data);
 		}
 		if(dataobj.type=='title'){
 			if(dataobj.title==undefined){

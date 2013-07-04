@@ -2,6 +2,7 @@ var formidable = require('formidable'),
 	async =	require('async');
 var deal={};
 deal['uploaddata']=require('./post/uploaddata').main;
+deal['submittjdaprob']=require('./post/submittjdaprob').main;
 
 function findpath(path,sql,callback){
 	if(path.length!=33)return;
@@ -17,7 +18,7 @@ function findpath(path,sql,callback){
 					if(rows.length<1){
 						callback('NOT FOUND');
 					}
-					callback(null,rows[0].info);
+					callback(null,rows[0].info,rows[0].uid);
 				}
 				sqlc.end();
 			});
@@ -25,22 +26,26 @@ function findpath(path,sql,callback){
 	})
 }
 exports.main=function(path,response,sql,rawreq,callback){
-	findpath(path,sql,function(err,res){
+	findpath(path,sql,function(err,res,uid){
 		if(err){
 			callback(err);
 			return;
 		}
 		try{
 			var k=JSON.parse(res);
+			if(typeof(k)!='object'){
+				console.log('Post Error');
+				return;
+			}
 
 			if(deal[k.order]!=undefined){
 				var form = new formidable.IncomingForm();
 				form.parse(rawreq,function(err,fields,files){
-					console.log(JSON.stringify(fields));
-					console.log(JSON.stringify(files));
+//					console.log(JSON.stringify(fields));
+//					console.log(JSON.stringify(files));
 					for(var i in files){
 						k.filename=files[i].name;
-						deal[k.order](files[i].path,k,sql,
+						deal[k.order](files[i].path,k,uid,sql,
 						function(errv){
 							if(errv=== 'ok'){
 								response.write('ok');

@@ -1,6 +1,7 @@
 var WebSocketServer = require('websocket').server;
 var http = require('http');
 var crypto=require('crypto');
+var serverlog=require('./lib/log').srvlog;
 
 
 function originIsAllowed(origin) {
@@ -35,11 +36,11 @@ exports.start=function(server,sqlpool,wshandler,eventbus,simpledb){
 		if (!originIsAllowed(request.origin)) {
 			// Make sure we only accept requests from an allowed origin
 			request.reject();
-			console.log((new Date()) + ' Connection from origin ' + request.origin + ' rejected.');
+			serverlog('B',(new Date()) + ' Connection from origin ' + request.origin + ' rejected.');
 			return;
 		}
 		if(!protocolIsAllowed(request.requestedProtocols)){
-			console.log((new Date()) + ' Unsupported protocol list detected');
+			serverlog('B',(new Date()) + ' Unsupported protocol list detected');
 			var protocol_list=request.requestedProtocols;
 			for(i in protocol_list){
 				console.log('::'+protocol_list[i]);
@@ -52,11 +53,11 @@ exports.start=function(server,sqlpool,wshandler,eventbus,simpledb){
 			simpledb.connectionCountDB[request.remoteAddress]=0;
 		if(simpledb.connectionCountDB[request.remoteAddress]>=3){
 			request.reject(403,'Too many connections on a single IP');
-			console.log('Connection From IP:'+request.remoteAddress+' rejected');
+			serverlog('C','Too many connection From Single IP,Connection From IP:'+request.remoteAddress+' rejected');
 			return;
 		}
 
-		console.log((new Date()) + ' Connection accepted:IP:'+request.remoteAddress);
+		serverlog('C',(new Date()) + ' Connection From IP:'+request.remoteAddress+' accepted');
 
 		var connection = request.accept('xjpipeline-protocol', request.origin);
 		simpledb.connectionCountDB[request.remoteAddress]+=1;
@@ -80,7 +81,8 @@ exports.start=function(server,sqlpool,wshandler,eventbus,simpledb){
 				connection.lastTimeCount=0;
 			}
 			if (message.type === 'utf8') {
-				wshandler.handle(message.utf8Data,connection,sqlpool,eventbus);
+i//				wshandler.handle(message.utf8Data,connection,sqlpool,eventbus);
+				serverlog('B','UTF8 Message:'+message.utf8Data+' From IP:'+connection.ip+' Maybe UID:'+connection.uid)
 			}
 			else if (message.type === 'binary') {
 				wshandler.handle(message.binaryData,connection,sqlpool,eventbus);
@@ -90,7 +92,7 @@ exports.start=function(server,sqlpool,wshandler,eventbus,simpledb){
 			}
 		});
 		connection.on('close', function(reasonCode, description) {
-			console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected:'+reasonCode+':'+description);
+			serverlog('C',(new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected:'+reasonCode+':'+description);
 			simpledb.connectionCountDB[request.remoteAddress]-=1;
 		});
 		connectionpool.push(connection);
