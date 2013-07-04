@@ -1,11 +1,15 @@
 var isok=require('../lib/isok').isok,
-    async=require('async');
+    async=require('async'),
+    srvlog=require('../lib/log').srvlog;
 exports.main=function(conn,handle,data,sql,callback){
 	isok(conn.uid,'edit_problem',sql,
 	function(ct){
 		if(ct!=0){
 			if(handle==='edit'){
 				view(conn.uid,data,sql,callback);
+			}
+			else if(handle==='setspj'){
+				setspj(conn.uid,data,sql,callback);
 			}
 		}
 	});
@@ -115,5 +119,52 @@ function add(uid,data,sql,callback){
 	function(err){
 		if(err)
 			console.log('Problemedit.add.err:'+err);
+	});
+}
+function setspj(uid,data,sql,callback){
+	var src,pid,type;
+	try{
+		var iobj=JSON.parse(data);
+		pid=iobj.pid;
+		src=iobj.src;
+		type=iobj.type;
+		if(isNaN(pid))throw'PID NOT INT';
+	}catch(e){
+		srvlog('B','SetSPJ JSON Error:uid:'+uid+' Error:'+e);
+		return;
+	}
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('DELETE FROM xjos.spj_table WHERE spjid IN(SELECT spjid FROM xjos.problem WHERE pid='+sqlc.escape(pid)+')',
+		function(err,rows){
+			callback(err,sqlc);
+		});
+	},
+	function(sqlc,callback){
+		var iobj={'spjsrc':src,'spjbin':'','iscompiled':0,'spjtype':type};
+		sqlc.query('INSERT INTO xjos.spj_table SET '+sqlc.escape(iobj),
+		function(err,res){
+			if(err){
+				callback(err);
+				return;
+			}
+			callback(err,sqlc,res.insertId);
+		});
+	},
+	function(sqlc,insid,callback){
+		sqlc.query('UPDATE xjos.problem SET spjid='+sqlc.escape(insid)+' WHERE pid='+sqlc.escape(pid),function(err,rows){
+			sqlc.end();
+			callback(err);
+		});
+	},
+	function(cb){
+		callback('ok');
+	}],
+	function(err){
+		if(err)
+			srvlog('A','SetSPJERROR:'+err);
 	});
 }
