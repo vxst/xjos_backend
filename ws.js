@@ -81,8 +81,8 @@ exports.start=function(server,sqlpool,wshandler,eventbus,simpledb){
 				connection.lastTimeCount=0;
 			}
 			if (message.type === 'utf8') {
-i//				wshandler.handle(message.utf8Data,connection,sqlpool,eventbus);
-				serverlog('B','UTF8 Message:'+message.utf8Data+' From IP:'+connection.ip+' Maybe UID:'+connection.uid)
+//				wshandler.handle(message.utf8Data,connection,sqlpool,eventbus);
+				serverlog('B','UTF8 Message:'+JSON.stringify(message.utf8Data)+' From IP:'+connection.ip+' Maybe UID:'+connection.uid)
 			}
 			else if (message.type === 'binary') {
 				wshandler.handle(message.binaryData,connection,sqlpool,eventbus);

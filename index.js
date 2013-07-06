@@ -16,11 +16,11 @@ var srvlog=require('./lib/log').srvlog;
 var handle={}
 handle['NOTFOUND']=require('./404').mainfun;
 
-process.on('uncaughtException', 
-function(err){
-	srvlog('S','uncaughtException:'+err);
-	console.trace(label);
-});
+//process.on('uncaughtException', 
+//function(err){
+//	srvlog('S','uncaughtException:'+err);
+//	console.trace(label);
+//});
 process.on('exit',
 function(){
 	srvlog('BSync','Process Exited');

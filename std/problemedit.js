@@ -6,10 +6,13 @@ exports.main=function(conn,handle,data,sql,callback){
 	function(ct){
 		if(ct!=0){
 			if(handle==='edit'){
-				view(conn.uid,data,sql,callback);
-			}
-			else if(handle==='setspj'){
+				edit(conn.uid,data,sql,callback);
+			}else if(handle==='setspj'){
 				setspj(conn.uid,data,sql,callback);
+			}else if(handle==='delallowlanguage'){
+				delallowlanguage(conn.uid,data,sql,callback);
+			}else if(handle==='addallowlanguage'){
+				addallowlanguage(conn.uid,data,sql,callback);
 			}
 		}
 	});
@@ -28,6 +31,68 @@ exports.main=function(conn,handle,data,sql,callback){
 				del(conn.uid,data,sql,callback);
 			}
 		}
+	});
+}
+function delallowlanguage(uid,data,sql,callback){
+	var pid=null,lid=null;
+	try{
+		var kobj=JSON.parse(data);
+		pid=kobj.pid;lid=kobj.lid;
+		if(isNaN(pid)||isNaN(lid))
+			return;
+	}catch(e){
+		srvlog('A','delAllowLanguage:'+e);
+		return;
+	}
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('DELETE FROM xjos.problem_language_table WHERE pid='+sqlc.escape(pid)+' AND lid='+sqlc.escape(lid),
+		function(err,rows){
+			callback(err);
+			sqlc.end();
+		});
+	},
+	function(cb){
+		callback('ok');
+		cb();
+	}],
+	function(err){
+		callback('err');
+		srvlog('C','delAllowLanguageError:'+err);
+	});
+}
+function addallowlanguage(uid,data,sql,callback){
+	var pid=null,lid=null;
+	try{
+		var kobj=JSON.parse(data);
+		pid=kobj.pid;lid=kobj.lid;
+		if(isNaN(pid)||isNaN(lid))
+			return;
+	}catch(e){
+		srvlog('A','addAllowLanguage:'+e);
+		return;
+	}
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('INSERT INTO xjos.problem_language_table WHERE pid='+sqlc.escape(pid)+' AND lid='+sqlc.escape(lid),
+		function(err,rows){
+			callback(err);
+			sqlc.end();
+		});
+	},
+	function(cb){
+		callback('ok');
+		cb();
+	}],
+	function(err){
+		callback('err');
+		srvlog('C','addAllowLanguageError:'+err);
 	});
 }
 function del(uid,data,sql,callback){
@@ -62,7 +127,7 @@ function del(uid,data,sql,callback){
 			console.log(err);
 	});
 }
-function view(uid,data,sql,callback){
+function edit(uid,data,sql,callback){
 	sql.getConnection(function(err,sqlconn){
 		var p={};
 		try{
@@ -76,6 +141,7 @@ function view(uid,data,sql,callback){
 //		console.log(p['myid']);
 //		console.log("UPDATE xjos.problem SET "+p['myid']+'='+sqlconn.escape(p.data)+' WHERE pid='+sqlconn.escape(p.pid));
 		var obj={};
+	//	console.log(p);
 		obj[p.myid]=p.data;
 		sqlconn.query("UPDATE xjos.problem SET "+sqlconn.escape(obj)+' WHERE pid='+sqlconn.escape(p.pid),function(err,rows){
 			if(!err)
@@ -144,13 +210,14 @@ function setspj(uid,data,sql,callback){
 		});
 	},
 	function(sqlc,callback){
-		var iobj={'spjsrc':src,'spjbin':'','iscompiled':0,'spjtype':type};
+		var iobj={'spjsrc':src,'spjbin':'','spjbin_iscompiled':0,'spjtype':type};
 		sqlc.query('INSERT INTO xjos.spj_table SET '+sqlc.escape(iobj),
 		function(err,res){
 			if(err){
 				callback(err);
 				return;
 			}
+//			console.log(res.insertId);
 			callback(err,sqlc,res.insertId);
 		});
 	},
