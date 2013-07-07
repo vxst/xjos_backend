@@ -56,7 +56,7 @@ function view(uid,data,sql,callback){//FIXME:Not Look Like good
 		});
 	},
 	function(sqlc,level,callback){
-		sqlc.query("SELECT pid,problem_title,problem_description,problem_input,problem_output,problem_hint,elo,spjid FROM xjos.problem WHERE pid="+sqlc.escape(pid)+' AND levelt<='+sqlc.escape(level),
+		sqlc.query("SELECT pid,problem_title,problem_description,problem_input,problem_output,problem_hint,elo,spjid,istjda FROM xjos.problem WHERE pid="+sqlc.escape(pid)+' AND levelt<='+sqlc.escape(level),
 		function(err,rows){
 			if(err){
 				srvlog('A','ProbView:SQL Error:'+err+' data:'+data);

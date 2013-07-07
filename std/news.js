@@ -2,62 +2,12 @@ var isok=require('../lib/isok').isok;
 var async=require('async');
 var filter=require('./filter').htmlfilter;
 exports.main=function(conn,handle,data,sql,callback){
-	isok(conn.uid,'view_forum',sql,
+	isok(conn.uid,'edit_news',sql,
 	function(ct){
 		if(ct==0)return;
-		if(handle==='gettopics'){
-			gettopics(conn.uid,data,sql,callback);
-		}else if(handle==='addtopic'){
+		else if(handle==='addtopic'){
 			addtopic(conn.uid,data,sql,callback);
-		}else if(handle==='gettopic'){
-			gettopic(conn.uid,data,sql,callback);
 		}
-	});
-}
-function gettopic(uid,data,sql,callback){
-	var tid=null;
-	try{
-		tid=JSON.parse(data).tid;
-	}catch(e){
-		console.log('DGTE'+e);
-	}
-	async.waterfall([
-	function(callback){
-		sql.getConnection(callback);
-	},
-	function(sqlc,callback){
-		sqlc.query('SELECT tid,title,content,user.uid,username,date,rank,isnews FROM xjos.discuss_topics JOIN xjos.user ON user.uid=discuss_topics.uid WHERE grandfathertid='+sqlc.escape(tid)+' OR tid='+sqlc.escape(tid)+' ORDER BY rank',function(err,rows){
-			callback(err,rows);
-			sqlc.end();
-		});
-	},
-	function(rows,cb){
-		callback(JSON.stringify(rows));
-		cb();
-	}],
-	function(err){
-		if(err)
-			console.log('Discuss.GetTopic:ERR:'+err);
-	});
-}
-function gettopics(uid,data,sql,callback){
-	async.waterfall([
-	function(callback){
-		sql.getConnection(callback);
-	},
-	function(sqlc,callback){
-		sqlc.query('SELECT tid,title,content,user.uid,username,date,lastreplytime,isnews FROM xjos.discuss_topics JOIN xjos.user ON user.uid=discuss_topics.uid WHERE grandfathertid=0 ORDER BY lastreplytime DESC',function(err,rows){
-			callback(err,rows);
-			sqlc.end();
-		});
-	},
-	function(rows,cb){
-		callback(JSON.stringify(rows));
-		cb();
-	}],
-	function(err){
-		if(err)
-			console.log('GetTopics Error:'+err);
 	});
 }
 function addtopic(uid,data,sql,callback){
@@ -71,6 +21,7 @@ function addtopic(uid,data,sql,callback){
 			console.log('Add topic');
 			intobj.grandfathertid=0;
 			intobj.fathertid=0;
+			intobj.isnews=1;
 			async.waterfall([
 			function(callback){
 				sql.getConnection(callback);
