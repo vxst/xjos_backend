@@ -128,6 +128,7 @@ function del(uid,data,sql,callback){
 	});
 }
 function edit(uid,data,sql,callback){
+	//console.log('Edit!'+data);
 	sql.getConnection(function(err,sqlconn){
 		var p={};
 		try{
@@ -142,6 +143,7 @@ function edit(uid,data,sql,callback){
 //		console.log("UPDATE xjos.problem SET "+p['myid']+'='+sqlconn.escape(p.data)+' WHERE pid='+sqlconn.escape(p.pid));
 		var obj={};
 	//	console.log(p);
+	//	console.log(obj);
 		obj[p.myid]=p.data;
 		sqlconn.query("UPDATE xjos.problem SET "+sqlconn.escape(obj)+' WHERE pid='+sqlconn.escape(p.pid),function(err,rows){
 			if(!err)

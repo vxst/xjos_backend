@@ -11,7 +11,7 @@ exports.main=function(path,obj,uid,sql,pscb){
 	console.log("Papa:"+path);
 	async.waterfall([
 	function(callback){
-		fs.exist('/tmp/xjosuploadtmp/',function(isexist){
+		fs.exists('/tmp/xjosuploadtmp/',function(isexist){
 			if(isexist)callback();
 			else{
 				fs.mkdir('/tmp/xjosuploadtmp',function(err){

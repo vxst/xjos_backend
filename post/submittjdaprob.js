@@ -3,13 +3,14 @@ var uncompress=require('../tools/uncompresser').main
 	,async=require('async')
 	,fs=require('fs')
 	,crypto=require('crypto')
-	,isok=require('../lib/isok');
+	,isok=require('../lib/isok').isok;
 
 function makeuuid(){
 	return crypto.pseudoRandomBytes(16).toString('hex');
 }
 exports.main=function(path,obj,uid,sql,pscb){
 	console.log("Papa:"+path);
+	obj.uid=uid;
 	if(isNaN(obj.uid))return;
 	if(isNaN(obj.pid))return;
 	async.waterfall([
@@ -23,7 +24,7 @@ exports.main=function(path,obj,uid,sql,pscb){
 		});
 	},
 	function(callback){
-		fs.exist('/tmp/xjosuploadtmp/',function(isexist){
+		fs.exists('/tmp/xjosuploadtmp/',function(isexist){
 			if(isexist){
 				callback();
 			}else{
@@ -36,6 +37,7 @@ exports.main=function(path,obj,uid,sql,pscb){
 	function(callback){
 		var uuid=makeuuid();
 		var dir='/tmp/xjosuploadtmp/'+uuid+'/';
+		console.log('Dadi'+dir);
 		fs.mkdir(dir,
 		function(err){
 			callback(err,uuid,dir);

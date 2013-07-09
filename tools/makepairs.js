@@ -11,8 +11,9 @@ function getnum(filename){
 	if(flag==1){
 		start=0;flag=2;
 	}
-	if(flag!=2)
-		return null;
+	if(flag!=2){
+		return null
+	}
 	return filename.substring(start,end);
 }
 var inword=['in','st'];
@@ -53,5 +54,8 @@ function makepair(s){
 	}
 	return retarray;
 }
+//exports.main=makepair;
 //console.log(makepair(['1.in','1.out']));
-exports.main=makepair;
+//console.log(makepair(['dat1.in','dat1.out']));
+//console.log(makepair(['1dat.in','1dat.out']));
+//console.log(makepair(['dat.in','dat.out']));

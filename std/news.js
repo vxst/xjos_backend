@@ -10,7 +10,7 @@ exports.main=function(conn,handle,data,sql,callback){
 		}
 	});
 }
-function addtopic(uid,data,sql,callback){
+function addtopic(uid,data,sql,callback){//S0
 	var intobj={};
 	try{
 		var k=JSON.parse(data);

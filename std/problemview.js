@@ -10,7 +10,45 @@ exports.main=function(conn,handle,data,sql,callback){
 			view(conn.uid,data,sql,callback);
 		}else if(handle==='sample'){
 			sample(conn.uid,data,sql,callback);
+		}else if(handle==='gettjda'){
+			input(conn.uid,data,sql,callback);
 		}
+	});
+}
+function input(uid,data,sql,callback){
+	if(isNaN(data))return;
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		libuser.getlevel(uid,sql,function(level){
+			callback(null,sqlc,level);
+		});
+	},
+	function(sqlc,level,callback){
+		sqlc.query('SELECT istjda FROM xjos.problem WHERE pid='+sqlc.escape(parseInt(data))+' AND levelt<='+sqlc.escape(level),
+		function(err,rows){
+			if(err){callback(err,rows);sqlc.end();}
+			else if(rows.length<1){callback('User:'+uid+' has No Priv To Visit Prob:'+parseInt(data));sqlc.end();}
+			else if(rows[0].istjda==0){callback('User:'+uid+' want to visit input '+parseInt(data)+' which is not tjda');sqlc.end();}
+			else callback(err,sqlc,parseInt(data));
+		});
+	},
+	function(sqlc,pid,callback){
+		sqlc.query('SELECT problem_data_input FROM xjos.problem_data WHERE pid='+sqlc.escape(pid),
+		function(err,rows){
+			sqlc.end();
+			callback(err,rows);
+		});
+	},
+	function(rows,cb){
+		callback(JSON.stringify(rows));
+		cb();
+	}],
+	function(err){
+		if(err)
+			srvlog('A','ProbView.Input:'+err);
 	});
 }
 //Get samples for one problem

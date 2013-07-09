@@ -9,7 +9,7 @@ exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 	if(handle==='add'){
 //		isok(conn.uid,'edit_problem',sql,function(isk){
 //			if(isk!=0)
-				add(conn.uid,data,sql,callback);
+		add(conn.uid,data,sql,callback);
 //		});
 	}
 }
