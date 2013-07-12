@@ -76,8 +76,8 @@ exports.main=function(path,obj,uid,sql,pscb){
 			},
 			function(sqlc,callback){
 				var inf=excdir+item.input,outf=excdir+item.output;
-				var t={'problem_data_rank':item.rank,'problem_data_input':fs.readFileSync(inf),'problem_data_output':fs.readFileSync(outf),'pid':obj.pid,'uid':obj.uid};
-				sqlc.query('INSERT INTO xjos.problem_data_tjda SET '+sqlc.escape(t),
+				var t={'rank':item.rank,'output':fs.readFileSync(outf),'pid':obj.pid,'uid':obj.uid,'grade':0,'isjudged':0};
+				sqlc.query('INSERT INTO xjos.submit_tjda SET '+sqlc.escape(t),
 				function(err,rows){
 					sqlc.end();
 					if(err){

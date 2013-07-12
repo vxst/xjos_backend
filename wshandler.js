@@ -21,6 +21,7 @@ handle['user']=require('./std/user').main;
 handle['discuss']=require('./std/discuss').main;
 handle['special']=require('./std/special').main;
 handle['news']=require('./std/news').main;
+handle['app']=require('./std/app').main;
 
 /*handle['regbin']=function(conn,order,data,mysql,cb){
 	if(conn.uid==undefined){

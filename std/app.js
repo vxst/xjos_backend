@@ -27,7 +27,8 @@ function listApps(uid,data,sql,callback){
 		sql.getConnection(callback);
 	},
 	function(sqlc,callback){
-		sqlc.query('SELECT aid,app_name,status FROM xjos.application LEFT JOIN xjos.application_user ON application_user.aid=application.aid WHERE uid='+sqlc.escape(uid),function(err,rows){
+		sqlc.query('SELECT application.app_icon_url AS appIconUrl,application.aid,application.app_name AS appName,appuk.status FROM xjos.application LEFT JOIN (SELECT xjos.application_user.status,xjos.application_user.aid FROM xjos.application_user WHERE uid='+sqlc.escape(uid)+') AS appuk ON appuk.aid=application.aid',
+		function(err,rows){
 			sqlc.end();
 			callback(err,rows);
 		});
@@ -37,6 +38,7 @@ function listApps(uid,data,sql,callback){
 		cb();
 	}],
 	function(err){
-		if(err
-	}
+		if(err)
+			srvlog('B',err);
+	});
 }
