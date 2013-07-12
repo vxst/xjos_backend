@@ -54,7 +54,7 @@ function makepair(s){
 	}
 	return retarray;
 }
-//exports.main=makepair;
+exports.main=makepair;
 //console.log(makepair(['1.in','1.out']));
 //console.log(makepair(['dat1.in','dat1.out']));
 //console.log(makepair(['1dat.in','1dat.out']));

@@ -3,6 +3,7 @@ var elopvp=require('./libelo').personvsproblem;
 var async=require('async');
 var xmlparser=require('xml2js').parseString;
 var isok=require('../lib/isok').isok;
+var srvlog=require('../lib/log').srvlog;
 
 exports.main=function(conn,handle,data,sql,callback,eventbus){//if over 10,use array.
 	isok(conn.uid,'submit_problem',sql,
@@ -18,9 +19,15 @@ exports.main=function(conn,handle,data,sql,callback,eventbus){//if over 10,use a
 		if(handle==='list'){
 			list(conn.uid,data,sql,callback);
 		}else if(handle==='single'){
-			single(conn.uid,data,sql,callback);
+			getinfo(conn.uid,data,sql,callback);
 		}else if(handle==='muiltiply'){
 			muiltiply(conn.uid,data,sql,callback);
+		}else if(handle==='gettjdainfolist'){
+			gettjdainfo_list(conn.uid,data,sql,callback);
+		}else if(handle==='gettjdainfostgid'){
+			gettjdainfo_stgid(conn.uid,data,sql,callback);
+		}else if(handle==='gettjdainfo'){
+			gettjdainfo(conn.uid,data,sql,callback);
 		}
 	});
 }
@@ -96,7 +103,7 @@ function list(uid,data,sql,callback){//S1
 			console.log('ERR:STD-SUBMIT-LIST:'+err);
 	});
 }
-function single(uid,data,sql,callback){
+function getinfo(uid,data,sql,callback){
 	if(uid==null){
 		console.log('Unlogin agian');
 		callback('Not login');
@@ -324,5 +331,92 @@ function updateelo(sid,pid,uid,result,sql){
 	}],
 	function(err){
 		console.log('UPDELO ERR:'+err);
+	});
+}
+function gettjdainfo(uid,data,sql,callback){//S1
+	if(isNaN(data))return;
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('SELECT tjdat.stid,tjdat.stgid,tjdat.pid,problem_data.problem_data_rank,tjdat.grade,tjdat.isjudged,tjdat.date,problem_data.problem_data_score AS fullscore FROM xjos.problem_data LEFT JOIN (SELECT stid,stgid,pid,grade,isjudged,date,rank FROM xjos.submit_tjda WHERE stid IN (SELECT MAX(stid) FROM xjos.submit_tjda WHERE uid='+sqlc.escape(uid)+' AND pid='+sqlc.escape(data)+' GROUP BY rank))AS tjdat ON problem_data.pid=tjdat.pid AND problem_data.problem_data_rank=tjdat.rank WHERE problem_data.pid='+sqlc.escape(data),function(err,rows){
+			if(err){
+				srvlog('A','Get TJDAInfo'+err);
+				callback('SQL ERROR');
+			}else{
+				sqlc.end();
+				callback(null,rows);
+			}
+		});
+	},
+	function(rows,cb){
+		callback(JSON.stringify(rows));
+		cb();
+	}],
+	function(err){
+		if(err)
+			srvlog('B','Get TJDAInfo'+err);
+	})
+}
+function gettjdainfo_list(uid,data,sql,callback){//S1
+	if(isNaN(data))return;
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('SELECT MAX(stgid)AS stgid,MAX(date) AS date FROM xjos.submit_tjda WHERE uid='+sqlc.escape(uid)+' AND pid='+sqlc.escape(parseInt(data))+' GROUP BY stgid',function(err,rows){
+			if(err){
+				srvlog('A','Get TJDAInfo'+err);
+				callback('SQL ERROR');
+			}else{
+				sqlc.end();
+				callback(null,rows);
+			}
+		});
+	},
+	function(rows,cb){
+		callback(JSON.stringify(rows));
+		cb();
+	}],
+	function(err){
+		if(err)
+			srvlog('B','Get TJDAInfo'+err);
+	})
+}
+
+function gettjdainfo_stgid(uid,data,sql,callback){//S1
+	var stgid;
+	if(isNaN(data))return;
+	try{
+		var s=JSON.parse(data);
+		stgid=parseInt(s.stgid);
+		pid=parseInt(s.pid);
+	}catch(e){
+		srvlog('B','uid:'+uid+' '+e);
+	}
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('SELECT tjdat.stid,tjdat.stgid,tjdat.pid,problem_data.rank,tjdat.grade,tjdat.isjudged,tjdat.date,problem_data.problem_data_score AS fullscore FROM xjos.problem_data LEFT JOIN (SELECT stid,stgid,pid,grade,isjudged,date,rank FROM xjos.submit_tjda WHERE stgid='+sqlc.escape(stgid)+' AND uid='+sqlc.escape(uid)+')AS tjdat ON problem_data.pid=tjdat.pid AND problem_data.problem_data_rank=tjdat.rank WHERE pid='+sqlc.escape(pid),function(err,rows){
+			if(err){
+				srvlog('A','Get TJDAInfo'+err);
+				callback('SQL ERROR');
+			}else{
+				sqlc.end();
+				callback(null,rows);
+			}
+		});
+	},
+	function(rows,cb){
+		callback(JSON.stringify(rows));
+		cb();
+	}],
+	function(err){
+		if(err)
+			srvlog('B','Get TJDAInfo'+err);
 	});
 }

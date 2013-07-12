@@ -3,10 +3,47 @@ var uncompress=require('../tools/uncompresser').main
 	,async=require('async')
 	,fs=require('fs')
 	,crypto=require('crypto')
-	,isok=require('../lib/isok').isok;
-
+	,isok=require('../lib/isok').isok
+	,srvlog=require('../lib/log').srvlog;
 function makeuuid(){
 	return crypto.pseudoRandomBytes(16).toString('hex');
+}
+function getstgid(callback,sql){
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('LOCK TABLE xjos.submit_tjda_mxstgid WRITE',function(err,rows){
+			callback(err,sqlc);
+		});
+	},
+	function(sqlc,callback){
+		sqlc.query('SELECT maxstgid AS mxstgid FROM xjos.submit_tjda_mxstgid',function(err,rows){
+			if(err)callback(err);
+			if(rows.length!=1)callback('L Error');
+			callback(err,sqlc,rows[0].mxstgid);
+		});
+	},
+	function(sqlc,mxstgid,callback){
+		sqlc.query('UPDATE xjos.submit_tjda_mxstgid SET maxstgid='+sqlc.escape(mxstgid+1),function(err,rows){
+			callback(err,sqlc,mxstgid);
+		});
+	},
+	function(sqlc,mxstgid,callback){
+		sqlc.query('UNLOCK TABLES',function(err,rows){
+			callback(err,mxstgid);
+			sqlc.end();
+		});
+	},
+	function(mxstgid,cb){
+		callback(mxstgid);
+		cb();
+	}],
+	function(err){
+		if(err)
+			srvlog('A',err);
+	});
 }
 exports.main=function(path,obj,uid,sql,pscb){
 	console.log("Papa:"+path);
@@ -66,6 +103,11 @@ exports.main=function(path,obj,uid,sql,pscb){
 		});
 	},
 	function(uuid,dir,excdir,files,callback){
+		getstgid(function(stgid){
+			callback(null,uuid,dir,excdir,files,stgid);
+		},sql);
+	},
+	function(uuid,dir,excdir,files,stgid,callback){
 		var p=makepairs(files);
 		console.log('ITEM:'+JSON.stringify(files));
 		async.eachSeries(p,
@@ -76,7 +118,7 @@ exports.main=function(path,obj,uid,sql,pscb){
 			},
 			function(sqlc,callback){
 				var inf=excdir+item.input,outf=excdir+item.output;
-				var t={'rank':item.rank,'output':fs.readFileSync(outf),'pid':obj.pid,'uid':obj.uid,'grade':0,'isjudged':0};
+				var t={'rank':item.rank,'output':fs.readFileSync(outf),'pid':obj.pid,'uid':obj.uid,'grade':0,'isjudged':0,'stgid':stgid,'date':new Date()};
 				sqlc.query('INSERT INTO xjos.submit_tjda SET '+sqlc.escape(t),
 				function(err,rows){
 					sqlc.end();
@@ -97,7 +139,7 @@ exports.main=function(path,obj,uid,sql,pscb){
 		},
 		function(err){
 			if(err)
-				callback(err);
+				srvlog('B',err);
 		});
 	}],
 	function(err){
