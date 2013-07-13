@@ -23,52 +23,6 @@ handle['special']=require('./std/special').main;
 handle['news']=require('./std/news').main;
 handle['app']=require('./std/app').main;
 
-/*handle['regbin']=function(conn,order,data,mysql,cb){
-	if(conn.uid==undefined){
-		conn.send('Nothing to reg for unreged user');
-		return;
-	}
-	if(order==='reg'){
-		var req;
-		try{
-			req=JSON.parse(data);
-		}catch(e){
-			console.log('regbin.format.error1');
-			cb('JSON FORMAT ERROR');
-			return;
-		}
-		if(typeof(req)!='object'){
-			console.log('regbin.format.error2');
-			cb('JSON FORMAT ERROR');
-			return;
-		}
-		if(typeof(req.handler)!='string'||typeof(req.order)!='string'||typeof(req.data)!='string'){
-			console.log('regbin.format.error3');
-			cb('JSON FORMAT ERROR');
-			return;
-		}
-//		conn.bin_ct++;
-		conn.bin_ct=0;
-		if(conn.bin_ct==256)
-			conn.bin_ct=0;
-		if(conn.bin_arg[conn.bin_ct]!=undefined){
-			cb('ST-Secure-System:Reg Limit Exceed');
-		}
-		conn.bin_arg[conn.bin_ct]={};
-		conn.bin_arg[conn.bin_ct].handler=req.handler;
-		conn.bin_arg[conn.bin_ct].order=req.order;
-		conn.bin_arg[conn.bin_ct].data=req.data;
-		cb(conn.bin_ct);
-	}
-	if(order==='dereg'){
-		var regk=parseInt(data);
-		if(data==NaN){
-			cb('Format Error');
-		}
-		conn.bin_arg[regk]=undefined;
-		cb('ok');
-	}
-}*/
 function checkstr(wsstr){
 	var _counterz=-1,_counterp=0;
 	for(var i=0;i<wsstr.length;i++)
@@ -83,20 +37,14 @@ function checkstr(wsstr){
 		if(wsstr[i]=='.')
 			_counterp++;
 	if(_counterp<2){
-		//console.log('E:'+_counterp);
 		srvlog('B','WSString Check Error');
 		return false;
 	}
-//	console.log("T_T"+_counterz+"+"+_counterp);
 	return true;
 }
 exports.handle=function(wsbin,conn,mysql,eventbus){
-//	console.log(wsbin);
-//	if(wsbin!=="Thank you for accepting me"){
 		try{
 			var buffer=wsbin;
-//			wsstr = zlib.inflateSync(buffer).toString('utf8');
-//			dohandle(wsstr,connn,mysql,eventbus);
 			zlib.inflateRaw(buffer,function(err,newbuf){
 				if(err){
 					console.log(err);
@@ -116,41 +64,46 @@ function deflatesend(str,conn){
 			console.log(err);
 			return;
 		}
-//		console.log('Compress '+str.length+' to '+newbuf.length);
 		conn.send(newbuf);
 	});
 }
 var dohandle=function(wsstr,conn,mysql,eventbus){
-//	try{
-//	console.log('DO handle! '+wsstr);
-//		console.log(conn.ip+':'+wsstr);
 		srvlog('D','IP:'+conn.ip+' Order:'+wsstr);
-		if(!checkstr(wsstr)&&wsstr!=="Thank you for accepting me"){
+		/*if(!checkstr(wsstr)&&wsstr!=="Thank you for accepting me"){
 			srvlog('B','Unknown WS Order:'+wsstr+' IP:'+conn.ip);
-//			console.log('Unknown WS Order:'+wsstr);
 			conn.send("UNDEF_STRING_ERROR");
 			return;
-		}
-		var t=wsstr.split('_',2);
-		if(t[1]===undefined)return;
-		var h=t[1].split('.',2);
-		if(t[0]==undefined||h[0]==undefined||h[1]==undefined){			
-			//conn.sendUTF(t[0]+'_@failed_XJPipeline Error:Happy Birthday!');
-			deflatesend(t[0]+'_@failed_XJPipeline Error:Happy Birthday!',conn);
-//			console.log('ERR:WSHANDLER:'+wsstr);
-			srvlog('B','Websocket Handler Error:'+wsstr+' IP:'+conn.ip);
+		}*/
+		if(wsstr==='Thank you for accepting me')return;
+		var tobj=null;
+		try{
+			tobj=JSON.parse(wsstr);
+			if(tobj['order']==undefined||tobj['id']==undefined)return;
+			if(typeof(tobj['order'])!='string'||typeof(tobj['id'])!='string')return;
+		}catch(e){
+			srvlog('B','WS Handler Error:Json Format Error:'+e+':'+wsstr+' IP:'+conn.ip);
 			return;
 		}
-		var dt=wsstr.substr(t[0].length+1+h[0].length+1+h[1].length+1);
+		var h=tobj.order.split('.',2);
+//		if(t[0]==undefined||h[0]==undefined||h[1]==undefined){			
+			//conn.sendUTF(t[0]+'_@failed_XJPipeline Error:Happy Birthday!');
+//			deflatesend(t[0]+'_@failed_XJPipeline Error:Happy Birthday!',conn);
+//			console.log('ERR:WSHANDLER:'+wsstr);
+//			srvlog('B','Websocket Handler Error:'+wsstr+' IP:'+conn.ip);
+//			return;
+//		}
+		var dt=tobj.order.substr(h[0].length+1+h[1].length+1);
 //		console.log('Handle '+h[0]+' Fired');
 		if(handle[h[0]]===undefined){
 			srvlog('B','Undefined Handle Error:'+wsstr+' IP:'+conn.ip);
 			deflatesend(t[0]+'_@failed_XJPipeline Error:Handle Of Service '+h[0]+' is undefined.',conn);
 		}else{
 	//		console.log("FH:"+h[0]);
-			handle[h[0]](conn,h[1],dt,mysql,function(res){
-				deflatesend(t[0]+'_'+t[1]+'_'+res,conn);
-			},eventbus);
+			handle[h[0]](conn,h[1],dt,mysql,function(id){
+				return function(res){
+					deflatesend(JSON.stringify({'id':id,'data':res}),conn);
+				}
+			}(tobj.id),eventbus);
 		}
 //	}catch(e){
 //		console.log('Error!-'+JSON.stringify(e));
