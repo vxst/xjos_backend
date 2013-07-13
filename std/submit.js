@@ -143,14 +143,32 @@ function getinfo(uid,data,sql,callback){
 	function(sqlc,cuteobj,cb){
 		sqlc.query('SELECT sid FROM xjos.user_contest JOIN xjos.contest_submit ON contest_submit.cid=user_contest.cid JOIN xjos.contest ON contest.cid=user_contest.cid WHERE uid='+sqlc.escape(uid)+' AND ((user_contest.start_time<NOW() AND user_contest.end_time> NOW() AND user_contest.type="virtual") OR (contest.start_time<NOW() AND contest.end_time>NOW() AND user_contest.type="real")) ORDER BY sid ASC',
 		function(err,rows){
-			if(err)
+			if(err){
 				console.log(err);
+				cb(err);
+				return;
+			}
 			cuteobj.isincontest=false;
 			for(var i=0;i<rows.length;i++)
 				if(rows[i].sid==data)
 					cuteobj.isincontest=true;
 			cb(null,cuteobj,sqlc);
 		});
+	},
+	function(cuteobj,sqlc,cb){
+		if(cuteobj.ptype=='TJDA'&&cuteobj.isincontest==false){
+			sqlc.query('SELECT problem_data_rank AS id,"0.00" AS mem,"0.00" AS time,sttbl.status,sttbl.status_id,CONV(sttbl.grade,10,10) AS score,sttbl.message FROM xjos.problem_data LEFT JOIN (SELECT stid,rank,grade,message,pid,status_id,status FROM xjos.submit_tjda WHERE sid='+sqlc.escape(data)+' AND uid='+sqlc.escape(uid)+') AS sttbl ON sttbl.rank=problem_data.problem_data_rank AND sttbl.pid=problem_data.pid WHERE xjos.problem_data.pid='+sqlc.escape(cuteobj.pid),function(err,rows){
+				if(err){
+					cb(err,rows);
+					sqlc.end();
+				}else{
+					cuteobj.result=rows;
+					cb(err,cuteobj,sqlc);
+				}
+			});
+		}else{
+			cb(null,cuteobj,sqlc);
+		}
 	},
 	function(cuteobj,sqlc,callback){
 		sqlc.query('SELECT problem_data_id,problem_data_method,problem_data_score,problem_data_time,problem_data_memory,problem_data_rank,tester FROM xjos.problem_data WHERE pid='+sqlc.escape(cuteobj.pid),
@@ -188,7 +206,7 @@ function submit(uid,data,sql,callback,eventbus){//S2
 		console.log('Submit Json errorB');
 		return;
 	}
-	var subobj={'pid':q.pid,'language':q.language,'source':q.source,'datetime':new Date(),'uid':uid};
+	var subobj={'pid':q.pid,'language':q.language,'source':q.source,'datetime':new Date(),'uid':uid,'ptype':'NORMAL'};
 
 	async.waterfall([
 	function(callback){
@@ -340,7 +358,7 @@ function gettjdainfo(uid,data,sql,callback){//S1
 		sql.getConnection(callback);
 	},
 	function(sqlc,callback){
-		sqlc.query('SELECT tjdat.stid,tjdat.stgid,tjdat.pid,problem_data.problem_data_rank,tjdat.grade,tjdat.isjudged,tjdat.date,problem_data.problem_data_score AS fullscore FROM xjos.problem_data LEFT JOIN (SELECT stid,stgid,pid,grade,isjudged,date,rank FROM xjos.submit_tjda WHERE stid IN (SELECT MAX(stid) FROM xjos.submit_tjda WHERE uid='+sqlc.escape(uid)+' AND pid='+sqlc.escape(data)+' GROUP BY rank))AS tjdat ON problem_data.pid=tjdat.pid AND problem_data.problem_data_rank=tjdat.rank WHERE problem_data.pid='+sqlc.escape(data),function(err,rows){
+		sqlc.query('SELECT tjdat.stid,tjdat.sid AS stgid,tjdat.pid,problem_data.problem_data_rank,tjdat.grade,tjdat.isjudged,tjdat.date,problem_data.problem_data_score AS fullscore FROM xjos.problem_data LEFT JOIN (SELECT stid,sid,pid,grade,isjudged,date,rank FROM xjos.submit_tjda WHERE stid IN (SELECT MAX(stid) FROM xjos.submit_tjda WHERE uid='+sqlc.escape(uid)+' AND pid='+sqlc.escape(data)+' GROUP BY rank))AS tjdat ON problem_data.pid=tjdat.pid AND problem_data.problem_data_rank=tjdat.rank WHERE problem_data.pid='+sqlc.escape(data),function(err,rows){
 			if(err){
 				srvlog('A','Get TJDAInfo'+err);
 				callback('SQL ERROR');
@@ -366,9 +384,9 @@ function gettjdainfo_list(uid,data,sql,callback){//S1
 		sql.getConnection(callback);
 	},
 	function(sqlc,callback){
-		sqlc.query('SELECT MAX(stgid)AS stgid,MAX(date) AS date FROM xjos.submit_tjda WHERE uid='+sqlc.escape(uid)+' AND pid='+sqlc.escape(parseInt(data))+' GROUP BY stgid',function(err,rows){
+		sqlc.query('SELECT MAX(sid)AS stgid,MAX(date) AS date FROM xjos.submit_tjda WHERE uid='+sqlc.escape(uid)+' AND pid='+sqlc.escape(parseInt(data))+' GROUP BY sid',function(err,rows){
 			if(err){
-				srvlog('A','Get TJDAInfo'+err);
+				srvlog('A','Get TJDAInfo_List '+err);
 				callback('SQL ERROR');
 			}else{
 				sqlc.end();
@@ -401,7 +419,7 @@ function gettjdainfo_stgid(uid,data,sql,callback){//S1
 		sql.getConnection(callback);
 	},
 	function(sqlc,callback){
-		sqlc.query('SELECT tjdat.stid,tjdat.stgid,tjdat.pid,problem_data.rank,tjdat.grade,tjdat.isjudged,tjdat.date,problem_data.problem_data_score AS fullscore FROM xjos.problem_data LEFT JOIN (SELECT stid,stgid,pid,grade,isjudged,date,rank FROM xjos.submit_tjda WHERE stgid='+sqlc.escape(stgid)+' AND uid='+sqlc.escape(uid)+')AS tjdat ON problem_data.pid=tjdat.pid AND problem_data.problem_data_rank=tjdat.rank WHERE pid='+sqlc.escape(pid),function(err,rows){
+		sqlc.query('SELECT tjdat.stid,tjdat.sid,tjdat.pid,problem_data.rank,tjdat.grade,tjdat.isjudged,tjdat.date,problem_data.problem_data_score AS fullscore FROM xjos.problem_data LEFT JOIN (SELECT stid,sid,pid,grade,isjudged,date,rank FROM xjos.submit_tjda WHERE stgid='+sqlc.escape(stgid)+' AND uid='+sqlc.escape(uid)+')AS tjdat ON problem_data.pid=tjdat.pid AND problem_data.problem_data_rank=tjdat.rank WHERE pid='+sqlc.escape(pid),function(err,rows){
 			if(err){
 				srvlog('A','Get TJDAInfo'+err);
 				callback('SQL ERROR');

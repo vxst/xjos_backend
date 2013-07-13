@@ -15,11 +15,15 @@ function getstgid(callback,sql){
 	},
 	function(sqlc,callback){
 		sqlc.query('LOCK TABLE xjos.submit_tjda_mxstgid WRITE',function(err,rows){
+			if(err)
+				sqlc.end();
 			callback(err,sqlc);
 		});
 	},
 	function(sqlc,callback){
 		sqlc.query('SELECT maxstgid AS mxstgid FROM xjos.submit_tjda_mxstgid',function(err,rows){
+			if(err)
+				sqlc.end();
 			if(err)callback(err);
 			if(rows.length!=1)callback('L Error');
 			callback(err,sqlc,rows[0].mxstgid);
@@ -27,6 +31,8 @@ function getstgid(callback,sql){
 	},
 	function(sqlc,mxstgid,callback){
 		sqlc.query('UPDATE xjos.submit_tjda_mxstgid SET maxstgid='+sqlc.escape(mxstgid+1),function(err,rows){
+			if(err)
+				sqlc.end();
 			callback(err,sqlc,mxstgid);
 		});
 	},
@@ -46,7 +52,7 @@ function getstgid(callback,sql){
 	});
 }
 exports.main=function(path,obj,uid,sql,pscb){
-	console.log("Papa:"+path);
+//	console.log("Papa:"+path);
 	obj.uid=uid;
 	if(isNaN(obj.uid))return;
 	if(isNaN(obj.pid))return;
@@ -74,42 +80,53 @@ exports.main=function(path,obj,uid,sql,pscb){
 	function(callback){
 		var uuid=makeuuid();
 		var dir='/tmp/xjosuploadtmp/'+uuid+'/';
-		console.log('Dadi'+dir);
+//		console.log('Dadi'+dir);
 		fs.mkdir(dir,
 		function(err){
-			callback(err,uuid,dir);
+			callback(err,dir);
 		});
 	},
-	function(uuid,dir,callback){
+	function(dir,callback){
 		var archivefilename=dir+obj.filename;
 		fs.rename(path,archivefilename,function(err){
-			callback(err,uuid,dir,archivefilename);
+			callback(err,dir,archivefilename);
 		});
 	},
-	function(uuid,dir,arcfn,callback){
+	function(dir,arcfn,callback){
 		fs.mkdir(dir+'excplace/',
 		function(err){
-			callback(err,uuid,dir,arcfn,dir+'excplace/');
+			callback(err,dir,arcfn,dir+'excplace/');
 		});
 	},
-	function(uuid,dir,arcfn,excdir,callback){
+	function(dir,arcfn,excdir,callback){
 		uncompress(arcfn,excdir,function(err){
-			callback(err,uuid,dir,excdir);
+			callback(err,dir,excdir);
 		});
 	},
-	function(uuid,dir,excdir,callback){
+	function(dir,excdir,callback){
 		fs.readdir(excdir,function(err,files){
-			callback(err,uuid,dir,excdir,files);
+			callback(err,dir,excdir,files);
 		});
 	},
-	function(uuid,dir,excdir,files,callback){
-		getstgid(function(stgid){
-			callback(null,uuid,dir,excdir,files,stgid);
-		},sql);
+	function(dir,excdir,files,callback){
+		sql.getConnection(function(err,sqlc){
+			callback(err,sqlc,dir,excdir,files);
+		});
 	},
-	function(uuid,dir,excdir,files,stgid,callback){
+	function(sqlc,dir,excdir,files,callback){
+		var insobj={'pid':obj.pid,'uid':obj.uid,'datetime':new Date(),'language':9,'source':'TJDA Prob','status':4096,'infoboard':'','result':'','ptype':'TJDA'};
+		sqlc.query('INSERT INTO xjos.submit SET '+sqlc.escape(insobj),
+		function(err,res){
+			if(err)
+				callback(err);
+			else
+				callback(err,dir,excdir,files,res.insertId);
+			sqlc.end();
+		});
+	},
+	function(dir,excdir,files,sid,callback){
 		var p=makepairs(files);
-		console.log('ITEM:'+JSON.stringify(files));
+		console.log('ITEM:'+JSON.stringify(files)+' SID:'+sid);
 		async.eachSeries(p,
 		function(item,callback){
 			async.waterfall([
@@ -117,8 +134,9 @@ exports.main=function(path,obj,uid,sql,pscb){
 				sql.getConnection(callback);
 			},
 			function(sqlc,callback){
+				console.log('GG');
 				var inf=excdir+item.input,outf=excdir+item.output;
-				var t={'rank':item.rank,'output':fs.readFileSync(outf),'pid':obj.pid,'uid':obj.uid,'grade':0,'isjudged':0,'stgid':stgid,'date':new Date()};
+				var t={'rank':item.rank,'output':fs.readFileSync(outf),'pid':obj.pid,'uid':obj.uid,'grade':0,'isjudged':0,'sid':sid,'date':new Date()};
 				sqlc.query('INSERT INTO xjos.submit_tjda SET '+sqlc.escape(t),
 				function(err,rows){
 					sqlc.end();
