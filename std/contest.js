@@ -403,11 +403,19 @@ function info(uid,data,sql,callback){//S1
 	function(sqlc,cobj,probs,regs,cb){
 		cobj.probs=probs;
 		cobj.regs=regs;
-		sqlc.query('SELECT pid,sid,status,datetime,language FROM xjos.contest_submit NATURAL JOIN xjos.submit WHERE cid='+sqlc.escape(cid)+' AND uid='+sqlc.escape(uid),function(err,rows){
+		sqlc.query('SELECT pid,submit.sid,status,datetime,language,grade FROM xjos.contest_submit JOIN xjos.submit ON submit.sid=contest_submit.sid WHERE cid='+sqlc.escape(cid)+' AND uid='+sqlc.escape(uid),function(err,rows){
+			if(err){
+				sqlc.end();
+				callback(err);
+			}
+			console.log(err);
+			console.log(rows);
 			var st=new Date(cobj.start_time),et=new Date(cobj.end_time),now=new Date();
 			if(st<now&&et>now&&cobj.type=='OI'){
-				for(var i=0;i<rows.length;i++)
+				for(var i=0;i<rows.length;i++){
 					rows[i]['status']&=6;
+					rows[i]['grade']=null;
+				}
 			}
 			cobj.submits=rows;
 			cb(null,cobj);

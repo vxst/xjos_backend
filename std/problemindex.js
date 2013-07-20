@@ -1,6 +1,7 @@
 var async=require('async'),
     isok=require('../lib/isok').isok,
-    libuser=require('./libuser');
+    libuser=require('./libuser'),
+    srvlog=require('../lib/log').srvlog;
 exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 	isok(conn.uid,'view_problem',sql,
 	function(ct){
@@ -111,7 +112,7 @@ function getlevel(uid,data,sql,callback){
 	}],
 	function(err){
 		if(err)
-			console.log('Problemindex.GetLevel:ERR:'+err);
+			srvlog('B','problemindex.getlevel:'+data+' Error:'+err+' UID:'+uid);
 	});
 }
 function search(uid,data,sql,callback){

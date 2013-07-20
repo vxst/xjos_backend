@@ -4,6 +4,7 @@ var async=require('async');
 var xmlparser=require('xml2js').parseString;
 var isok=require('../lib/isok').isok;
 var srvlog=require('../lib/log').srvlog;
+var libuser=require('./libuser');
 
 exports.main=function(conn,handle,data,sql,callback,eventbus){//if over 10,use array.
 	isok(conn.uid,'submit_problem',sql,
@@ -28,7 +29,23 @@ exports.main=function(conn,handle,data,sql,callback,eventbus){//if over 10,use a
 			gettjdainfo_stgid(conn.uid,data,sql,callback);
 		}else if(handle==='gettjdainfo'){
 			gettjdainfo(conn.uid,data,sql,callback);
+		}else if(handle==='getlanguage'){
+			getlanguage(conn.uid,data,sql,callback);
 		}
+	});
+}
+function getlanguage(uid,data,sql,callback){
+	if(data!='all'){callback(JSON.stringify([]));return;}
+	sql.getConnection(function(err,sqlc){
+		sqlc.query('SELECT id,name,isshow FROM xjos.language',function(err,rows){
+			if(err){
+				callback('ERROR')
+				srvlog('A','GetLanguageSQLError');
+			}else{
+				callback(JSON.stringify(rows));
+			}
+			sqlc.end();
+		});
 	});
 }
 function findcontest(uid,pid,sql,callback){//S1
@@ -65,7 +82,7 @@ function list(uid,data,sql,callback){//S1
 		sql.getConnection(callback);
 	},
 	function(sqlc,callback){
-		sqlc.query('SELECT sid,xjos.problem.pid,problem_title,language,datetime,status,grade FROM xjos.submit INNER JOIN xjos.problem ON xjos.problem.pid=xjos.submit.pid WHERE uid='+sqlc.escape(uid)+' ORDER BY sid ASC',
+		sqlc.query('SELECT sid,xjos.problem.pid,problem_title,language,datetime,status,grade,ptype FROM xjos.submit INNER JOIN xjos.problem ON xjos.problem.pid=xjos.submit.pid WHERE uid='+sqlc.escape(uid)+' ORDER BY sid ASC',
 		function(err,rows){
 			if(err){
 				console.log('ERR:STD-SUBMIT-LIST:'+err);
@@ -210,16 +227,52 @@ function submit(uid,data,sql,callback,eventbus){//S2
 
 	async.waterfall([
 	function(callback){
-		var c=findcontest(uid,q.pid,sql,function(ret){
-			if(ret==null)
-				callback('Submit ERR:Find Contest Module Error');
-			else
-				callback(null,ret);
+		libuser.getlevel(uid,sql,function(lvl){
+			if(isNaN(lvl)){
+				srvlog('A','Get Level Error');
+				callback('Get Level Error');
+				return;
+			}
+			callback(null,lvl);
+		})
+	},
+	function(lvl,callback){
+		sql.getConnection(function(err,sqlconn){
+			callback(err,sqlconn,lvl);
 		});
 	},
-	function(cidarr,callback){
-		sql.getConnection(function(err,sqlconn){
-			callback(err,cidarr,sqlconn);
+	function(sqlc,level,callback){
+		sqlc.query('SELECT istjda FROM xjos.problem WHERE pid='+sqlc.escape(subobj.pid)+' AND levelt<'+sqlc.escape(level),function(err,rows){
+			if(err){
+				srvlog('A','SubmitSQLERR:'+err);
+	console.log('Hehe');
+				sqlc.end();
+				callback('SQLErr');
+				return;
+			}
+			if(rows.length<1){
+				srvlog('B','No such prob');
+	console.log('Hehe');
+				callback('No Such Prob');
+				return;
+			}
+			if(rows[0].istjda==1){
+				srvlog('B','Submit ON TJDA By Normal');
+	console.log('Hehe');
+				callback('Type Error');
+				return;
+			}
+			callback(err,sqlc);
+		});
+	},
+	function(sqlc,callback){
+	console.log('rehe');
+		var c=findcontest(uid,q.pid,sql,function(ret){
+			if(ret==null){
+				callback('Submit ERR:Find Contest Module Error');
+				sqlc.end();
+			}else
+				callback(null,ret,sqlc);
 		});
 	},
 	function(cidarr,sqlc,callback){
@@ -438,3 +491,5 @@ function gettjdainfo_stgid(uid,data,sql,callback){//S1
 			srvlog('B','Get TJDAInfo'+err);
 	});
 }
+
+exports.findcontest=findcontest;

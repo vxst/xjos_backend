@@ -3,10 +3,14 @@ var async=require('async');
 var libuser=require('./libuser');
 var srvlog=require('../lib/log').srvlog;
 exports.main=function(conn,handle,data,sql,callback){
+	console.log('dsa');
 	isok(conn.uid,'view_problem',sql,
 	function(ct){
-		if(ct==0)return;
+		if(ct==0){
+			srvlog('B','problemview:No Priv');
+		}
 		if(handle==='view'){
+//			console.log('sfsdrft');
 			view(conn.uid,data,sql,callback);
 		}else if(handle==='sample'){
 			sample(conn.uid,data,sql,callback);
@@ -89,25 +93,28 @@ function view(uid,data,sql,callback){//FIXME:Not Look Like good
 		sql.getConnection(callback);
 	},
 	function(sqlc,callback){
-		libuser.getlevel(uid,sql,function(level){
-			callback(null,sqlc,level);
-		});
+		libuser.getlevel(uid,sql,function(sqlc,callback){
+			return function(level){
+				callback(null,sqlc,level);
+			}
+		}(sqlc,callback));
 	},
-	function(sqlc,level,callback){
+	function(sqlc,level,cb){
 		sqlc.query("SELECT pid,problem_title,problem_description,problem_input,problem_output,problem_hint,elo,spjid,istjda FROM xjos.problem WHERE pid="+sqlc.escape(pid)+' AND levelt<='+sqlc.escape(level),
 		function(err,rows){
 			if(err){
 				srvlog('A','ProbView:SQL Error:'+err+' data:'+data);
 //				console.log('ProbViewErr:'+err);
 				sqlc.end();
-				callback('err');
+				cb('err');
 				return;
 			}else if(rows.length>0){
-				callback(err,sqlc,rows[0]);
+				cb(err,sqlc,rows[0]);
 			}else{
 				sqlc.end();
-				srvlog('B','uid:'+uid+' ProbView NoPriv/NoProb');
-				callback('ProbView NoPriv/NoProb');
+				srvlog('C','uid:'+uid+' ProbView NoPriv/NoProb');
+				callback(JSON.stringify({'error':'No Problem'}));
+				cb('ProbView NoPriv/NoProb');
 			}
 		});
 	},

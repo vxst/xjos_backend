@@ -4,7 +4,8 @@ var uncompress=require('../tools/uncompresser').main
 	,fs=require('fs')
 	,crypto=require('crypto')
 	,isok=require('../lib/isok').isok
-	,srvlog=require('../lib/log').srvlog;
+	,srvlog=require('../lib/log').srvlog
+	,findcontest=require('../std/submit').findcontest;
 function makeuuid(){
 	return crypto.pseudoRandomBytes(16).toString('hex');
 }
@@ -117,11 +118,62 @@ exports.main=function(path,obj,uid,sql,pscb){
 		var insobj={'pid':obj.pid,'uid':obj.uid,'datetime':new Date(),'language':9,'source':'TJDA Prob','status':4096,'infoboard':'','result':'','ptype':'TJDA'};
 		sqlc.query('INSERT INTO xjos.submit SET '+sqlc.escape(insobj),
 		function(err,res){
-			if(err)
+			if(err){
 				callback(err);
-			else
-				callback(err,dir,excdir,files,res.insertId);
-			sqlc.end();
+				sqlc.end();
+			}else
+				callback(err,dir,excdir,files,res.insertId,sqlc);
+		});
+	},
+	function(dir,excdir,files,sid,sqlc,callback){
+		findcontest(obj.uid,obj.pid,sql,function(ret){
+			if(ret==null){
+				callback('Find Contest Error');
+				sqlc.end();
+			}else{
+				sqlc.end();
+				callback(null,ret,dir,excdir,files,sid);
+			}
+		});
+	},
+	function(cidarr,dir,excdir,files,sid,callback){
+		async.eachSeries(cidarr,
+		function(item,callback){
+			var qobj={'cid':item.cid,'sid':sid,'islast':1};
+			async.waterfall([
+			function(callback){
+				sql.getConnection(callback);
+			},
+			function(sqlc,callback){
+				sqlc.query('LOCK TABLES xjos.contest_submit WRITE,xjos.submit WRITE',function(err,rows){
+					callback(err,sqlc);
+				});
+			},
+			function(sqlc,callback){
+				sqlc.query('UPDATE xjos.contest_submit JOIN xjos.submit ON submit.sid=contest_submit.sid SET islast=0 WHERE cid='+item.cid+' AND pid='+obj.pid+' AND uid='+obj.uid,function(err,rows){
+					callback(err,sqlc);
+				});
+			},
+			function(sqlc,callback){
+				sqlc.query('INSERT INTO xjos.contest_submit SET '+sqlc.escape(qobj),
+				function(err,sqlr){
+					callback(err,sqlc);
+				})
+			},
+			function(sqlc,callback){
+				sqlc.query('UNLOCK TABLES',function(err,rows){
+					callback(err);
+					sqlc.end();
+				});
+			}],
+			function(err){
+				if(err)
+					console.log(err);
+				callback(err);
+			});
+		},
+		function(err){
+			callback(err,dir,excdir,files,sid);
 		});
 	},
 	function(dir,excdir,files,sid,callback){
@@ -162,7 +214,7 @@ exports.main=function(path,obj,uid,sql,pscb){
 	}],
 	function(err){
 		if(err){
-			console.log('UPDFILEERR:'+err);
+			console.log('UPDFILEERR:'+JSON.stringify(err));
 			pscb('err:'+err);
 		}else{
 			pscb('ok');
