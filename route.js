@@ -41,6 +41,15 @@ exports.route=function(path,query,response,handle,sql,rawreq,callback){
 			}
 			callback();
 		});
+	}else if(path.substr(0,8)=='XJFSGET/'&&rawreq.method.toLowerCase()=='get'){
+		getdealer(path,response,sql,rawreq,function(info){
+			if(info!='ok'){
+				console.log('Getdealer returns an error:'+info);
+			}else{
+				srvlog('D',rawreq.' Fetched '+path)
+			}
+			callback();
+		});
 	}else{
 		handle['NOTFOUND'](path,query,response);
 		callback();
