@@ -19,6 +19,8 @@ exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 		cd(conn.uid,data,sql,callback);
 	}else if(handle==='pwd'){
 		pwd(conn.uid,data,sql,callback);
+	}else if(handle==='mkdir'){
+		mkdir(conn.uid,data,sql,callback);
 	}else if(handle==='getbase64'){
 		getbase64(conn.uid,data,sql,callback);
 	}else if(handle==='getplaintext'){
