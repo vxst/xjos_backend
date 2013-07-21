@@ -1,10 +1,13 @@
 var notjson=require('./libjson');
 exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
-	if(handle==='recordlist'){
-		recordlist(conn.uid,data,sql,callback);
-	}else if(handle==='info'){
-		recordinfo(conn.uid,data,sql,callback);
-	}
+	isok(conn.uid,'record',sql,function(ct){
+		if(ct==0)return;
+		if(handle==='recordlist'){
+			recordlist(conn.uid,data,sql,callback);
+		}else if(handle==='info'){
+			recordinfo(conn.uid,data,sql,callback);
+		}
+	});
 }
 function recordlist(uid,data,sql,callback){
 /*	var q=notjson.parse(data);

@@ -4,27 +4,37 @@ exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 	if(conn.uid==null){
 		return;
 	}
-	if(handle==='list'){
-		list(conn.uid,data,sql,callback);
-	}else if(handle==='info'){
-		info(conn.uid,data,sql,callback);
-	}else if(handle==='minfo'){
-		minfo(conn.uid,data,sql,callback);
-	}else if(handle==='regcontest'){
-		regcontest(conn.uid,data,sql,callback);
-	}else if(handle==='delete'){
-		deletecontest(conn.uid,data,sql,callback);
-	}else if(handle==='grade'){
-		grade(conn.uid,data,sql,callback);
-	}else if(handle==='edit'){
-		edit(conn.uid,data,sql,callback);
-	}else if(handle==='addprob'){
-		addprob(conn.uid,data,sql,callback);
-	}else if(handle==='delprob'){
-		delprob(conn.uid,data,sql,callback);
-	}else if(handle==='add'){
-		add(conn.uid,data,sql,callback);
-	}
+	isok(conn.uid,'view_contest',sql,function(ct){
+		if(ct==0)return;
+		if(handle==='list'){
+			list(conn.uid,data,sql,callback);
+		}else if(handle==='info'){
+			info(conn.uid,data,sql,callback);
+		}else if(handle==='grade'){
+			grade(conn.uid,data,sql,callback);
+		}
+	});
+	isok(conn.uid,'reg_contest',sql,function(ct){
+		if(ct==0)return;
+		if(handle==='regcontest')
+			regcontest(conn.uid,data,sql,callback);
+	});
+	isok(conn.uid,'edit_contest',sql,function(ct){
+		if(ct==0)return;
+		if(handle==='edit'){
+			edit(conn.uid,data,sql,callback);
+		}else if(handle==='addprob'){
+			addprob(conn.uid,data,sql,callback);
+		}else if(handle==='delprob'){
+			delprob(conn.uid,data,sql,callback);
+		}else if(handle==='minfo'){
+			minfo(conn.uid,data,sql,callback);
+		}else if(handle==='delete'){
+			deletecontest(conn.uid,data,sql,callback);
+		}else if(handle==='add'){
+			add(conn.uid,data,sql,callback);
+		}
+	});
 }
 
 var isprofiling=false;

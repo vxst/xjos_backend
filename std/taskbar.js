@@ -1,7 +1,10 @@
 exports.main=function(conn,handle,data,sql,callback){
-	if(handle==='fetchAppList'){
-		fetchAppList(conn.uid,data,sql,callback);
-	}
+	isok(conn.uid,'common',sql,function(ct){
+		if(ct==0)return;
+		if(handle==='fetchAppList'){
+			fetchAppList(conn.uid,data,sql,callback);
+		}
+	});
 }
 function fetchAppList(uid,data,sql,callback){
 	if(uid==undefined){
