@@ -608,7 +608,7 @@ function postplaintext(conn,data,sql,callback){
 		mkrandstr(12,callback);//96 bit of randomness
 	},
 	function(str,callback){
-		var tmpname=commonvars.baseurl+'/files/tmp/'+str;
+		var tmpname=commonvars.baseurl+'/xjfsfiles/tmp/'+str;
 		fs.writeFile(tmpname,tobj.data,function(err){
 			callback(tmpname);
 		});
@@ -659,7 +659,7 @@ function postbase64(conn,data,sql,callback){
 		mkrandstr(12,callback);//96 bit of randomness
 	},
 	function(str,callback){
-		var tmpname=commonvars.baseurl+'/files/tmp/'+str;
+		var tmpname=commonvars.baseurl+'/xjfsfiles/tmp/'+str;
 		fs.writeFile(tmpname,new Buffer(tobj.data,'base64'),function(err){
 			callback(tmpname);
 		});
@@ -717,7 +717,7 @@ function getplaintext(conn,data,sql,callback){
 		});
 	},
 	function(hash,callback){
-		fs.readFile(commonvars.baseurl+'/files/'+hash.substr(0,2)+'/'+hash,callback);
+		fs.readFile(commonvars.baseurl+'/xjfsfiles/'+hash.substr(0,2)+'/'+hash,callback);
 	}],
 	function(err,data){
 		callback(mkretstr(err,data.toString(),'getplaintext'));
@@ -747,7 +747,7 @@ function getbase64(conn,data,sql,callback){
 		});
 	},
 	function(hash,callback){
-		fs.readFile(commonvars.baseurl+'/files/'+hash.substr(0,2)+'/'+hash,callback);
+		fs.readFile(commonvars.baseurl+'/xjfsfiles/'+hash.substr(0,2)+'/'+hash,callback);
 	}],
 	function(err,data){
 		callback(mkretstr(err,data.toString('base64'),'getbase64'));
