@@ -1,6 +1,7 @@
 var isok=require('../lib/isok').isok;
 var async=require('async');
 var filter=require('./filter').htmlfilter;
+var srvlog=require('../lib/log').srvlog;
 exports.main=function(conn,handle,data,sql,callback){
 	isok(conn.uid,'view_forum',sql,
 	function(ct){
@@ -11,7 +12,140 @@ exports.main=function(conn,handle,data,sql,callback){
 			addtopic(conn.uid,data,sql,callback);
 		}else if(handle==='gettopic'){
 			gettopic(conn.uid,data,sql,callback);
+		}else if(handle==='listboard'){
+			listboard(conn.uid,data,sql,callback);
+		}else if(handle==='getboard'){
+			getboard(conn.uid,data,sql,callback);
 		}
+	});
+	isok(conn.uid,'manage_forum',sql,
+	function(ct){
+		if(ct==0)return;
+		if(handle==='addboard'){
+			addboard(conn.uid,data,sql,callback);
+		}else if(handle==='delboard'){
+			delboard(conn.uid,data,sql,callback);
+		}else if(handle==='editboard'){
+			editboard(conn.uid,data,sql,callback);
+		}
+	});
+}
+function mkretstr(err,msg,me){
+	var retobj={};
+	if(err){
+		srvlog('A','discuss.'+me+'.ERROR:'+err);
+		retobj['status']='err';
+	}else{
+		retobj['status']='ok';
+	}
+	retobj['data']=msg;		
+}
+function delboard(uid,data,sql,callback){
+	if(isNaN(parseInt(data)))return;
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('DELETE FROM xjos.discuss_board WHERE bdid='+sqlc.escape(parseInt(data)),function(err,rows){
+			if(err){sqlc.end();callback(err);}
+			else callback(err,'finished');
+		});
+	}],
+	function(err,msg){
+		callback(mkretstr(err,msg,'delboard'));
+	});
+}
+function getboard(uid,data,sql,callback){
+	if(isNaN(parseInt(data)))return;
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('SELECT * FROM xjos.discuss_board WHERE bdid='+sqlc.escape(parseInt(data)),function(err,rows){
+			if(err){sqlc.end();callback(err);}
+			else if(rows.length<1){callback('No such board','No such board');}
+			else callback(err,sqlc,rows[0]);
+		});
+	},
+	function(sqlc,bdobj){
+		sqlc.query('SELECT * FROM xjos.discuss_topics WHERE bdid='+sqlc.escape(parseInt(data)),function(err,rows){
+			if(err){sqlc.end();callback(err);}
+			else{
+				bdobj.topics=rows;
+				sqlc.end();
+				callback(err,bdobj);
+			}
+		});
+	}],
+	function(err,msg){
+		callback(mkretstr(err,msg,'getboard'));
+	});
+}
+function editboard(uid,data,sql,callback){
+	var sobj={},bdid;
+	try{
+		var tobj=JSON.parse(data);
+		sobj={'fabdid':tobj.fatherBdid,'name':tobj.name,'description':tobj.description};
+		bdid=tobj.bdid;
+		if(sobj.fabdid==undefined)sobj.fabdid=0;
+	}catch(e){
+		callback(mkretstr(e,'JSON Error','addboard'));
+		return;
+	}
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('UPDATE xjos.discuss_board SET '+sqlc.escape(sobj)+' WHERE bdid='+sqlc.escape(bdid),function(err,rows){
+			sqlc.end();
+			callback(err,'finished');
+		});
+	}],
+	function(err,msg){
+		callback(mkretstr(err,msg,'editboard'));
+	});
+}
+function addboard(uid,data,sql,callback){
+	var sobj={};
+	try{
+		var tobj=JSON.parse(data);
+		sobj={'fabdid':tobj.fatherBdid,'name':tobj.name,'description':tobj.description};
+		if(sobj.fabdid==undefined)sobj.fabdid=0;
+	}catch(e){
+		callback(mkretstr(e,'JSON Error','addboard'));
+		return;
+	}
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('INSERT INTO xjos.discuss_board SET '+sqlc.escape(sobj),function(err,rows){
+			sqlc.end();
+			callback(err,'finished');
+		});
+	}],
+	function(err,msg){
+		callback(mkretstr(err,msg,'listboard'));
+	});
+}
+function listboard(uid,data,sql,callback){
+	if(data!='all')return;
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('SELECT * FROM xjos.discuss_board',function(err,rows){
+			sqlc.end();
+			callback(err,rows);
+		});
+	}],
+	function(err,msg){
+		callback(mkretstr(err,msg,'listboard'));
 	});
 }
 function gettopic(uid,data,sql,callback){

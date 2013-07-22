@@ -19,6 +19,8 @@ exports.main=function(conn,handle,data,sql,callback,eventbus){//if over 10,use a
 		if(ct==0)return;
 		if(handle==='list'){
 			list(conn.uid,data,sql,callback);
+		}else if(handle==='listwpid'){
+			listwpid(conn.uid,data,sql,callback);
 		}else if(handle==='single'){
 			getinfo(conn.uid,data,sql,callback);
 		}else if(handle==='muiltiply'){
@@ -74,6 +76,51 @@ function destatus(rows){//S2
 	for(var i=0;i<rows.length;i++){
 		rows[i]['status']=(rows[i]['status']|4096)^4096;
 	}
+}
+function listwpid(uid,data,sql,callback){//S0
+	if(isNaN(parseInt(data)))return;
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('SELECT sid,xjos.problem.pid,problem_title,language,datetime,status,grade,ptype FROM xjos.submit INNER JOIN xjos.problem ON xjos.problem.pid=xjos.submit.pid WHERE uid='+sqlc.escape(uid)+' AND submit.pid='+sqlc.escape(parseInt(data))+' ORDER BY sid ASC',
+		function(err,rows){
+			if(err){
+				console.log('ERR:STD-SUBMIT-LIST:'+err);
+				sqlc.end();
+				callback(err);
+			}else{
+				destatus(rows);
+				callback(null,rows,sqlc);
+			}
+		});
+	},
+	function(rowstatus,sqlc,cb){
+		sqlc.query('SELECT sid FROM xjos.contest_submit JOIN xjos.user_contest ON user_contest.cid=contest_submit.cid JOIN xjos.contest ON contest.cid=contest_submit.cid WHERE uid='+sqlc.escape(uid)+' AND ((user_contest.start_time<NOW() AND user_contest.end_time>NOW() AND user_contest.type="virtual") OR (contest.start_time<NOW() AND contest.end_time>NOW() AND user_contest.type="real")) ORDER BY sid ASC',
+		function(err,rows){
+			cb(err,rows,rowstatus);
+			sqlc.end();
+		});
+	},
+	function(sidarr,sbmarr,cb){
+		//console.log(sidarr);
+		for(var i=0,j=0;i<sbmarr.length&&j<sidarr.length;i++){
+			while(j<sidarr.length&&sbmarr[i].sid>sidarr[j].sid)
+				j++;
+			if(j==sidarr.length)break;
+			if(sbmarr[i].sid==sidarr[j].sid){
+				sbmarr[i]['grade']=null;
+				sbmarr[i]['status']&=6;
+			}
+		}
+		callback(JSON.stringify(sbmarr));
+		cb();
+	}],
+	function(err){
+		if(err)
+			console.log('ERR:STD-SUBMIT-LIST:'+err);
+	});
 }
 function list(uid,data,sql,callback){//S1
 	if(data!='all')return;

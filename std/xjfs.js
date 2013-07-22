@@ -1,6 +1,10 @@
 var async=require('async'),
     libdb=require('./libdb'),
-	srvlog=require('../lib/log').srvlog;
+    srvlog=require('../lib/log').srvlog,
+    fs=require('fs'),
+    crypto=require('crypto'),
+    commonvars=require('../commonvars'),
+    libfs=require('../lib/fs');
 exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 	if(conn.uid==null)
 		return;
@@ -22,19 +26,30 @@ exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 		pwd(conn,data,sql,callback);
 	}else if(handle==='mkdir'){//ok
 		mkdir(conn,data,sql,callback);
-	}else if(handle==='getbase64'){
+	}else if(handle==='gettotalsize'){//ok
+		gettotalsize(conn,data,sql,callback);
+	}else if(handle==='gettotalcount'){//ok
+		gettotalcount(conn,data,sql,callback);
+	}else if(handle==='getbase64'){//ok
 		getbase64(conn,data,sql,callback);
-	}else if(handle==='getplaintext'){
+	}else if(handle==='getplaintext'){//ok
 		getplaintext(conn,data,sql,callback);
 	}else if(handle==='gethttpsurl'){
 		gethttpsurl(conn,data,sql,callback);
-	}else if(handle==='postplaintext'){
+	}else if(handle==='postplaintext'){//ok
 		postplaintext(conn,data,sql,callback);
-	}else if(handle==='postbase64'){
+	}else if(handle==='postbase64'){//ok
 		postbase64(conn,data,sql,callback);
+	}else if(handle==='posthttpsurl'){
+		posthttpsurl(conn,data,sql,callback);
 	}
 }
 
+function mkrandstr(len,callback){//len bytes of random
+	crypto.pseudoRandomBytes(len,function(err,buf){
+		callback(err,buf.toString('hex'));
+	});
+}
 function mkretstr(err,msg,me){
 	var retobj={};
 	if(err){
@@ -156,7 +171,7 @@ function cd(conn,data,sql,callback){
 				callback(null,'cd finished');
 			}
 		});
-	},
+	}],
 	function(err,info){
 		callback(mkretstr(err,info,'cd'));
 	});
@@ -213,7 +228,7 @@ function copytree(unidfrom,unidto,sqlc,callback){//copy, never end sqlc
 				else
 					callback(err,'ok');
 			});
-		}
+		});
 	}],
 	function(err,msg){
 		callback(err,msg);
@@ -245,7 +260,7 @@ function removetree(unid,sqlc,callback){//remove, never end sqlc
 				else
 					callback(err,'ok');
 			});
-		}
+		});
 	}],
 	function(err,msg){
 		callback(err,msg);
@@ -300,7 +315,7 @@ function keepdirorder(unid,sqlc,callback){//move, never end sqlc
 				else
 					callback(err,'ok');
 			});
-		}
+		});
 	}],
 	function(err,msg){
 		callback(err,msg);
@@ -359,7 +374,7 @@ function mv(conn,data,sql,callback){
 		}else{
 			callback(null,'move file ok');
 		}
-	},
+	}],
 	function(err,info){
 		conn.dir.curarr[tobj['cur']].lock=true;
 		callback(mkretstr(err,info,'mv'));
@@ -417,7 +432,7 @@ function cp(conn,data,sql,callback){
 		}else{
 			callback(null,'copy file ok');
 		}
-	},
+	}],
 	function(err,info){
 		conn.dir.curarr[tobj['cur']].lock=false;
 		callback(mkretstr(err,info,'cp'));
@@ -475,7 +490,7 @@ function ls(conn,data,sql,callback){
 				callback(null,rows);
 			}
 		});
-	},
+	}],
 	function(err,info){
 		callback(mkretstr(err,info,'ls'));
 	});
@@ -498,7 +513,7 @@ function touch(conn,data,sql,callback){
 		sql.getConnection(callback);
 	},
 	function(sqlc,callback){
-		var insobj={'dir':getplace(nowplace,tobj.name),'filetype':'plain','hash':'','uid':conn.uid,'fatherunid':unid,'name':tobj.name};
+		var insobj={'dir':getplace(nowplace,tobj.name),'filetype':'plain','hash':'47DEQpj8HBSa-_TI','uid':conn.uid,'fatherunid':unid,'name':tobj.name,'size':0};
 		sqlc.query("INSERT INTO xjos.sfs_usrnode SET "+sqlc.escape(insobj),function(err,row){
 			callback(err);
 			sqlc.end();
@@ -534,7 +549,7 @@ function mkdir(conn,data,sql,callback){
 		sql.getConnection(callback);
 	},
 	function(sqlc,callback){
-		var insobj={'dir':getplace(nowplace,tobj.name),'filetype':'dir','hash':'','uid':conn.uid,'fatherunid':unid,'name':tobj.name};
+		var insobj={'dir':getplace(nowplace,tobj.name),'filetype':'dir','hash':'','uid':conn.uid,'fatherunid':unid,'name':tobj.name,'size':0};
 		sqlc.query("INSERT INTO xjos.sfs_usrnode SET "+sqlc.escape(insobj),function(err,row){
 			callback(err);
 			sqlc.end();
@@ -543,5 +558,198 @@ function mkdir(conn,data,sql,callback){
 	function(err){
 		conn.dir.curarr[tobj['cur']].lock=false;
 		callback(mkretstr(err,'mkdir finished','mkdir'));
+	});
+}
+function gettotalcount(conn,data,sql,callback){
+	var tobj=explaininput(data,'gettotal');
+
+	sql.getConnection(function(err,sqlc){
+		if(err){
+			srvlog('A','xjfs.gettotalcount:'+err);
+			return;
+		}
+		sqlc.query('SELECT count(*) as totalcount FROM xjos.sfs_usrnode WHERE uid='+sqlc.escape(conn.uid),
+		function(err,rows){
+			sqlc.end();
+			callback(mkretstr(err,rows[0].totalcount,'gettotalcount'));
+		});
+	});
+}
+function gettotalsize(conn,data,sql,callback){
+	var tobj=explaininput(data,'gettotal');
+
+	sql.getConnection(function(err,sqlc){
+		if(err){
+			srvlog('A','xjfs.gettotalsize:'+err);
+			return;
+		}
+		sqlc.query('SELECT SUM(size) as totalsize FROM xjos.sfs_usrnode WHERE uid='+sqlc.escape(conn.uid),
+		function(err,rows){
+			sqlc.end();
+			callback(mkretstr(err,rows[0].totalsize,'gettotalsize'));
+		});
+	});
+}
+function postplaintext(conn,data,sql,callback){
+	var tobj=explaininput(data,'postplaintext');
+
+	if(tobj==null)return;
+	if(!checkcur(conn,tobj.cur))return;
+	if(!checkname(tobj.name))return;
+	if(tobj.data==null)return;
+
+	conn.dir.curarr[tobj['cur']].lock=true;
+
+	var nowplace=conn.dir.curarr[tobj['cur']].dir;
+	var unid=conn.dir.curarr[tobj['cur']].unid;
+
+	async.waterfall([
+	function(callback){
+		mkrandstr(12,callback);//96 bit of randomness
+	},
+	function(str,callback){
+		var tmpname=commonvars.baseurl+'/files/tmp/'+str;
+		fs.writeFile(tmpname,tobj.data,function(err){
+			callback(tmpname);
+		});
+	},
+	function(tmpname,callback){
+		fs.stat(tmpname,function(err,stat){
+			if(err)callback(err,'XJFS Err');
+			else callback(err,tmpname,stat.size);
+		});
+	},
+	function(tmpname,size,callback){
+		libfs.renameFile(tmpname,function(err,hash){
+			if(err)callback(err,'XJFS Err');
+			else callback(err,hash,size);
+		});
+	},
+	function(hash,size,callback){
+		sql.getConnection(function(err,sqlc){
+			callback(err,sqlc,hash,size);
+		});
+	},
+	function(sqlc,hash,size,callback){
+		var insobj={'dir':getplace(nowplace,tobj.name),'filetype':'plain','hash':hash,'uid':conn.uid,'fatherunid':unid,'name':tobj.name,'size':size};
+		sqlc.query('INSERT INTO xjos.sfs_usrnode SET '+sqlc.escape(insobj),function(err,rows){
+			sqlc.end();
+			callback(err);
+		});
+	}],
+	function(err,msg){
+		callback(mkretstr(err,msg,'postplaintext'));
+	});
+}
+function postbase64(conn,data,sql,callback){
+	var tobj=explaininput(data,'postbase64');
+
+	if(tobj==null)return;
+	if(!checkcur(conn,tobj.cur))return;
+	if(!checkname(tobj.name))return;
+	if(tobj.data==null)return;
+
+	conn.dir.curarr[tobj['cur']].lock=true;
+
+	var nowplace=conn.dir.curarr[tobj['cur']].dir;
+	var unid=conn.dir.curarr[tobj['cur']].unid;
+
+	async.waterfall([
+	function(callback){
+		mkrandstr(12,callback);//96 bit of randomness
+	},
+	function(str,callback){
+		var tmpname=commonvars.baseurl+'/files/tmp/'+str;
+		fs.writeFile(tmpname,new Buffer(tobj.data,'base64'),function(err){
+			callback(tmpname);
+		});
+	},
+	function(tmpname,callback){
+		fs.stat(tmpname,function(err,stat){
+			if(err)callback(err,'XJFS Err');
+			else callback(err,tmpname,stat.size);
+		});
+	},
+	function(tmpname,size,callback){
+		libfs.renameFile(tmpname,function(err,hash){
+			if(err)callback(err,'XJFS Err');
+			else callback(err,hash,size);
+		});
+	},
+	function(hash,size,callback){
+		sql.getConnection(function(err,sqlc){
+			callback(err,sqlc,hash,size);
+		});
+	},
+	function(sqlc,hash,size,callback){
+		var insobj={'dir':getplace(nowplace,tobj.name),'filetype':'plain','hash':hash,'uid':conn.uid,'fatherunid':unid,'name':tobj.name,'size':size};
+		sqlc.query('INSERT INTO xjos.sfs_usrnode SET '+sqlc.escape(insobj),function(err,rows){
+			sqlc.end();
+			callback(err);
+		});
+	}],
+	function(err,msg){
+		conn.dir.curarr[tobj['cur']].lock=false;
+		callback(mkretstr(err,msg,'postbase64'));
+	});
+}
+function getplaintext(conn,data,sql,callback){
+	var tobj=explaininput(data,'getplaintext');
+
+	if(tobj==null)return;
+	if(!checkcur(conn,tobj.cur))return;
+
+	conn.dir.curarr[tobj['cur']].lock=true;
+
+	var nowplace=conn.dir.curarr[tobj['cur']].dir;
+	var unid=conn.dir.curarr[tobj['cur']].unid;
+
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('SELECT hash FROM xjos.sfs_usrnode WHERE uid='+sqlc.escape(conn.uid)+' AND dir='+sqlc.escape(getplace(nowplace,tobj.name))+' AND size<65536',function(err,rows){
+			sqlc.end();
+			if(err)callback(err,'XJFS Err');
+			else if(rows.length<1)callback('No such file','No such file');
+			else callback(err,rows[0].hash);
+		});
+	},
+	function(hash,callback){
+		fs.readFile(commonvars.baseurl+'/files/'+hash.substr(0,2)+'/'+hash,callback);
+	}],
+	function(err,data){
+		callback(mkretstr(err,data.toString(),'getplaintext'));
+	});
+}
+function getbase64(conn,data,sql,callback){
+	var tobj=explaininput(data,'getbase64');
+
+	if(tobj==null)return;
+	if(!checkcur(conn,tobj.cur))return;
+
+	conn.dir.curarr[tobj['cur']].lock=true;
+
+	var nowplace=conn.dir.curarr[tobj['cur']].dir;
+	var unid=conn.dir.curarr[tobj['cur']].unid;
+
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('SELECT hash FROM xjos.sfs_usrnode WHERE uid='+sqlc.escape(conn.uid)+' AND dir='+sqlc.escape(getplace(nowplace,tobj.name))+' AND size<65536',function(err,rows){
+			sqlc.end();
+			if(err)callback(err,'XJFS Err');
+			else if(rows.length<1)callback('No such file','No such file');
+			else callback(err,rows[0].hash);
+		});
+	},
+	function(hash,callback){
+		fs.readFile(commonvars.baseurl+'/files/'+hash.substr(0,2)+'/'+hash,callback);
+	}],
+	function(err,data){
+		callback(mkretstr(err,data.toString('base64'),'getbase64'));
 	});
 }

@@ -46,7 +46,7 @@ exports.route=function(path,query,response,handle,sql,rawreq,callback){
 			if(info!='ok'){
 				console.log('Getdealer returns an error:'+info);
 			}else{
-				srvlog('D',rawreq.' Fetched '+path)
+				srvlog('D',rawreq.remoteAddress+' Fetched '+path);
 			}
 			callback();
 		});

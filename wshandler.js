@@ -22,6 +22,7 @@ handle['discuss']=require('./std/discuss').main;
 handle['special']=require('./std/special').main;
 handle['news']=require('./std/news').main;
 handle['app']=require('./std/app').main;
+//handle['xjfs']=require('./std/xjfs').main;
 
 function checkstr(wsstr){
 	var _counterz=-1,_counterp=0;
