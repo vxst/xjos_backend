@@ -50,6 +50,14 @@ function mkrandstr(len,callback){//len bytes of random
 		callback(err,buf.toString('hex'));
 	});
 }
+function mkrandbase64str(len,callback){
+	crypto.pseudoRandomBytes(len,function(err,buf){
+		callback(err,buf.toString('base64').replace('+','-').replace('/','_'));
+	});
+}
+mkrandbase64str(12,function(err,str){
+	console.log(str);
+});
 function mkretstr(err,msg,me){
 	var retobj={};
 	if(err){
@@ -376,7 +384,7 @@ function mv(conn,data,sql,callback){
 		}
 	}],
 	function(err,info){
-		conn.dir.curarr[tobj['cur']].lock=true;
+		conn.dir.curarr[tobj['cur']].lock=false;
 		callback(mkretstr(err,info,'mv'));
 	});
 }
@@ -465,6 +473,7 @@ function rm(conn,data,sql,callback){
 		});
 	}],
 	function(err,msg){
+		conn.dir.curarr[tobj['cur']].lock=false;
 		callback(mkretstr(err,msg,'rm'));
 	});
 }
@@ -638,6 +647,7 @@ function postplaintext(conn,data,sql,callback){
 		});
 	}],
 	function(err,msg){
+		conn.dir.curarr[tobj['cur']].lock=false;
 		callback(mkretstr(err,msg,'postplaintext'));
 	});
 }
@@ -717,6 +727,7 @@ function getplaintext(conn,data,sql,callback){
 		});
 	},
 	function(hash,callback){
+		conn.dir.curarr[tobj['cur']].lock=false;
 		fs.readFile(commonvars.baseurl+'/xjfsfiles/'+hash.substr(0,2)+'/'+hash,callback);
 	}],
 	function(err,data){
@@ -750,6 +761,29 @@ function getbase64(conn,data,sql,callback){
 		fs.readFile(commonvars.baseurl+'/xjfsfiles/'+hash.substr(0,2)+'/'+hash,callback);
 	}],
 	function(err,data){
+		conn.dir.curarr[tobj['cur']].lock=false;
 		callback(mkretstr(err,data.toString('base64'),'getbase64'));
 	});
+}
+function gethttpsurl(conn,data,sql,callback){
+	var tobj=explaininput(data,'gethttpsurl');
+
+	if(tobj==null)return;
+	if(!checkcur(conn,tobj.cur))return;
+
+	var nowplace=conn.dir.curarr[tobj['cur']].dir;
+	var unid=conn.dir.curarr[tobj['cur']].unid;
+
+	var dir=getplace(nowplace,tobj.name);
+
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		mkrandbase64str(6,function(err,str){
+			callback(err,str,sqlc);
+		});
+		sqlc.query('INSERT INTO ')
+	}
 }

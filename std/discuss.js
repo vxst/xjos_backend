@@ -139,7 +139,7 @@ function listboard(uid,data,sql,callback){
 		sql.getConnection(callback);
 	},
 	function(sqlc,callback){
-		sqlc.query('SELECT * FROM xjos.discuss_board',function(err,rows){
+		sqlc.query('SELECT discuss_board.*,topic.tid AS lasttid, topic.title AS lasttitle, topic.content AS lastcontent, topic.username AS lasttopicusername FROM xjos.discuss_board LEFT JOIN (SELECT tid,title,content,username FROM xjos.discuss_topics JOIN xjos.user ON xjos.discuss_topics.uid=xjos.user.uid WHERE tid IN(SELECT MAX(tid) FROM xjos.discuss_topics GROUP BY bdid)) AS topic',function(err,rows){
 			sqlc.end();
 			callback(err,rows);
 		});
@@ -200,7 +200,8 @@ function addtopic(uid,data,sql,callback){
 		var k=JSON.parse(data);
 		if(k.content.length>32768){callback('Content too long');return;}
 		if(k.title.length>32){callback('Title too long');return;}
-		intobj={'title':k.title,'uid':uid,'content':filter(k.content),'date':new Date(),'fathertid':k.fatherid,'grandfathertid':k.grandfatherid,'lastreplytime':new Date(),'privuuid':'','rank':0};
+		intobj={'title':k.title,'uid':uid,'content':filter(k.content),'date':new Date(),'fathertid':k.fatherid,'grandfathertid':k.grandfatherid,'lastreplytime':new Date(),'privuuid':'','rank':0,'bdid':k.bdid};
+		if(intobj.bdid==undefined)intobj.bdid=0;
 		if(intobj.grandfathertid==undefined){
 			console.log('Add topic');
 			intobj.grandfathertid=0;
