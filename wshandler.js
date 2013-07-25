@@ -97,7 +97,7 @@ var dohandle=function(wsstr,conn,mysql,eventbus){
 //		console.log('Handle '+h[0]+' Fired');
 		if(handle[h[0]]===undefined){
 			srvlog('B','Undefined Handle Error:'+wsstr+' IP:'+conn.ip);
-			deflatesend(t[0]+'_@failed_XJPipeline Error:Handle Of Service '+h[0]+' is undefined.',conn);
+			deflatesend(tobj.id+'_@failed_XJPipeline Error:Handle Of Service '+h[0]+' is undefined.',conn);
 		}else{
 	//		console.log("FH:"+h[0]);
 			handle[h[0]](conn,h[1],dt,mysql,function(id){

@@ -44,16 +44,17 @@ function loginwtoken(conn,data,sql,callback){
 	if(mytoken.length!=16)return;
 
 	sql.getConnection(function(err,sqlconn){
+		if(err)return;
 		sqlconn.query('SELECT uid FROM xjos.login_token WHERE ip='+sqlconn.escape(myip)+' AND token='+sqlconn.escape(mytoken)+'AND expire>NOW()',
-		function(err,rows){
-			if(rows.length>=1){
-				conn.uid=rows[0].uid;
-				callback('ok');
-			}else{
-				callback('nya~');
+			function(err,rows){
+				sqlconn.end();
+				if(rows.length>=1){
+					conn.uid=rows[0].uid;
+					callback('ok');
+				}else{
+					callback('nya~');
+				}
 			}
-			sqlconn.end();
-		}
 		);
 	});
 }

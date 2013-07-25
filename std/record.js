@@ -1,4 +1,5 @@
-var notjson=require('./libjson');
+var notjson=require('./libjson'),
+	isok=require('../lib/isok').isok;
 exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 	isok(conn.uid,'record',sql,function(ct){
 		if(ct==0)return;

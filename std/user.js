@@ -208,7 +208,7 @@ function edit(uid,data,sql,callback){
 		sql.getConnection(callback);
 	},
 	function(sqlc,callback){
-		sqlc.query('UPDATE xjos.user SET '+sqlc.escape(kobj)+' AND uid='+sqlc.escape(zuid),
+		sqlc.query('UPDATE xjos.user SET '+sqlc.escape(kobj)+' WHERE uid='+sqlc.escape(zuid),
 		function(err,rows){
 			callback(err);
 			sqlc.end();

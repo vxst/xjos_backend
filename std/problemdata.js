@@ -12,6 +12,8 @@ exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 			del(conn.uid,data,sql,callback);
 		}else if(handle==='add'){
 			iadd(conn.uid,data,sql,callback);
+		}else if(handle==='deleteall'){
+			delall(conn.uid,data,sql,callback);
 		}
 	});
 	isok(conn.uid,'view_problem',sql,
@@ -23,6 +25,32 @@ exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 		}
 	});
 }
+function delall(uid,data,sql,callback){
+	if(uid==null){
+		console.log("ERR:STD-PROBLEMDATA-DEL:Not Login");
+		return;
+	}
+	if(isNaN(data)){
+		console.log('ERR:STD-PROBLEMDATA-DEL:Not Int');
+		return;
+	}
+	var pid=parseInt(data);
+	if(isNaN(pid))return;
+	sql.getConnection(
+		function(err,sqlc){
+			if(!err){
+				sqlc.query('DELETE FROM xjos.problem_data WHERE pid='+sqlc.escape(pid),
+				function(err,row){
+					if(!err){
+						callback('ok');
+					}
+					sqlc.end();
+				});
+			}
+		}
+	);
+}
+
 function del(uid,data,sql,callback){
 	if(uid==null){
 		console.log("ERR:STD-PROBLEMDATA-DEL:Not Login");
@@ -33,6 +61,7 @@ function del(uid,data,sql,callback){
 		return;
 	}
 	var pdid=parseInt(data);
+	if(isNaN(pdid))return;
 	sql.getConnection(
 		function(err,sqlc){
 			if(!err){

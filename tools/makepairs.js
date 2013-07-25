@@ -52,6 +52,7 @@ function makepair(s){
 		});
 		retarray.push({'rank':i,'input':tmpobj[i][0],'output':tmpobj[i][tmpobj[i].length-1]});
 	}
+	console.log('Di'+JSON.stringify(retarray));
 	return retarray;
 }
 exports.main=makepair;

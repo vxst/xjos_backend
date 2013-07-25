@@ -16,6 +16,14 @@ exports.main=function(conn,handle,data,sql,callback){
 			listboard(conn.uid,data,sql,callback);
 		}else if(handle==='getboard'){
 			getboard(conn.uid,data,sql,callback);
+		}else if(handle==='addtag'){
+			addtag(conn.uid,data,sql,callback);
+		}else if(handle==='deltag'){
+			deltag(conn.uid,data,sql,callback);
+		}else if(handle==='listtag'){
+			listtag(conn.uid,data,sql,callback);
+		}else if(handle==='gettag'){
+			gettag(conn.uid,data,sql,callback);
 		}
 	});
 	isok(conn.uid,'manage_forum',sql,
@@ -27,6 +35,133 @@ exports.main=function(conn,handle,data,sql,callback){
 			delboard(conn.uid,data,sql,callback);
 		}else if(handle==='editboard'){
 			editboard(conn.uid,data,sql,callback);
+		}else if(handle==='deltaginforum'){
+			deltaginforum(conn.uid,data,sql,callback);
+		}else if(handle==='addtaginforum'){
+			addtaginforum(conn.uid,data,sql,callback);
+		}
+	});
+}
+function gettag(uid,data,sql,callback){
+	sql.getConnection(function(err,sqlc){
+		sqlc.query('SELECT tid FROM xjos.discuss_tags JOIN xjos.discuss_tag_edge ON discuss_tag_edge.dtid=discuss_tags.dtid WHERE name='+sqlc.escape(data),function(err,rows){
+			sqlc.end();
+			callback(JSON.stringify(rows));
+		});
+	});
+}
+function listtag(uid,data,sql,callback){
+	sql.getConnection(function(err,sqlc){
+		sqlc.query('SELECT tagname FROM xjos.discuss_tags',function(err,rows){
+			sqlc.end();
+			callback(JSON.stringify(rows));
+		});
+	});
+}
+function deltag(uid,data,sql,callback){
+	var insobj=null;
+	try{
+		var dtobj=JSON.parse(data);
+		insobj={'tid':dtobj.tid,'tagname':dtobj.tagname};
+		if(isNaN(insobj.tid)||typeof(insobj.tagname)!='string')return;
+	}catch(e){
+		callback('JSON Error')
+		return;
+	}
+	if(insobj==null)return;
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('DELETE FROM xjos.discuss_tag_edge WHERE tid='+insobj.tid+',dtid=(SELECT dtid FROM xjos.discuss_tags WHERE name='+sqlc.escape(insobj.tagname)+')',function(err,rows){
+			sqlc.end();
+			callback(err);
+		})
+	}],
+	function(err){
+		mkretstr(err,'','deltag');
+	});
+}
+function addtag(uid,data,sql,callback){
+	var insobj=null;
+	try{
+		var dtobj=JSON.parse(data);
+		insobj={'tid':dtobj.tid,'tagname':dtobj.tagname};
+		if(isNaN(insobj.tid)||typeof(insobj.tagname)!='string')return;
+	}catch(e){
+		callback('JSON Error')
+		return;
+	}
+	if(insobj==null)return;
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('INSERT INTO xjos.discuss_tag_edge SET tid='+insobj.tid+',dtid=(SELECT dtid FROM xjos.discuss_tags WHERE name='+sqlc.escape(insobj.tagname)+')',function(err,rows){
+			sqlc.end();
+			callback(err);
+		})
+	}],
+	function(err){
+		mkretstr(err,'','addtag');
+	});
+}
+function deltaginforum(uid,data,sql,callback){
+	var insobj=null;
+	try{
+		var dtobj=JSON.parse(data);
+		insobj={'name':dtobj.name};
+	}catch(e){
+		callback('JSON Error')
+		return;
+	}
+	if(insobj==null)return;
+	sql.getConnection(function(err,sqlc){
+		if(err){
+			srvlog('A','SQLError');
+			callback('System Error')
+		}else{
+			sqlc.query('DELETE FROM xjos.discuss_tags WHERE '+sqlc.escape(insobj),function(err,rows){
+				sqlc.end();
+				if(err){
+					callback(mkretstr(err,'Failed','deltaginforum'));
+					return;
+				}else{
+					callback(mkretstr(err,rows.insertId,'deltaginforum'));
+				}
+			});
+		}
+	});
+}
+function addtaginforum(uid,data,sql,callback){
+	var insobj=null;
+	try{
+		var dtobj=JSON.parse(data);
+		insobj={'name':dtobj.name,'description':dtobj.description};
+		if(typeof(insobj.name)!='string'||typeof(insobj.description)!='string'){
+			callback('JSON Error');
+			return;
+		}
+	}catch(e){
+		callback('JSON Error')
+		return;
+	}
+	sql.getConnection(function(err,sqlc){
+		if(err){
+			srvlog('A','SQLError');
+			callback('System Error')
+		}else{
+			sqlc.query('INSERT INTO xjos.discuss_tags SET '+sqlc.escape(insobj),function(err,rows){
+				sqlc.end();
+				if(err){
+					callback(mkretstr(err,'Failed','addtaginforum'));
+					return;
+				}else{
+					callback(mkretstr(err,rows.insertId,'addtaginforum'));
+				}
+			});
 		}
 	});
 }

@@ -34,7 +34,7 @@ exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 		getbase64(conn,data,sql,callback);
 	}else if(handle==='getplaintext'){//ok
 		getplaintext(conn,data,sql,callback);
-	}else if(handle==='gethttpsurl'){
+	}else if(handle==='gethttpsurl'){//e..
 		gethttpsurl(conn,data,sql,callback);
 	}else if(handle==='postplaintext'){//ok
 		postplaintext(conn,data,sql,callback);
@@ -44,6 +44,7 @@ exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 		posthttpsurl(conn,data,sql,callback);
 	}
 }
+var limitvars={'maxdirlen':512};
 
 function mkrandstr(len,callback){//len bytes of random
 	crypto.pseudoRandomBytes(len,function(err,buf){
@@ -79,7 +80,10 @@ function getfatherdir(dir){
 			return dir.substr(0,i+1);
 }
 function getplace(dir,reldir){
-	if(reldir.length>256)return false;
+	if(reldir.length>limitvars.maxdirlen)return false;
+	if(dir.length>limitvars.maxdirlen)return false;
+	if(reldir[0]=='/'&&reldir[1]=='/')return false;
+
 	if(reldir[0]=='/')return reldir;
 	if(reldir.substr(0,3)=='../')return getplace(getfatherdir(dir),reldir.substr(3));
 	if(reldir.substr(0,3)=='./')return getplace(dir,reldir.substr(2));
@@ -773,8 +777,11 @@ function gethttpsurl(conn,data,sql,callback){
 
 	var nowplace=conn.dir.curarr[tobj['cur']].dir;
 	var unid=conn.dir.curarr[tobj['cur']].unid;
+	var expiretime=360000;
+	if(tobj.data!=undefined);
 
 	var dir=getplace(nowplace,tobj.name);
+	if(!dir)callback(mkretstr(null,'Args Wrong','gethttpsurl'));
 
 	async.waterfall([
 	function(callback){
@@ -784,6 +791,25 @@ function gethttpsurl(conn,data,sql,callback){
 		mkrandbase64str(6,function(err,str){
 			callback(err,str,sqlc);
 		});
-		sqlc.query('INSERT INTO ')
-	}
+	},
+	function(uuid,sqlc,callback){
+		sqlc.query('SELECT hash FROM xjos.sfs_usrnode WHERE uid='+sqlc.escape(conn.uid)+' AND dir='+sqlc.escape(dir),function(err,rows){
+			if(err){
+				callback(err);return;
+			}else if(rows.length<1){
+				callback('No such row','No such file');
+			}else
+				callback(err,sqlc,uuid,rows[0].hash);
+		});
+	},
+	function(sqlc,uuid,hash,callback){
+		var insobj={'uuid':uuid,'hash':hash,'expire':new Date((new Date()).getTime()+360)};
+		sqlc.query('INSERT INTO xjos.gettable SET '+sqlc.escape(insobj),function(err,rows){
+			sqlc.end();
+			callback(err,commonvars.dynurl+'/'+uuid);
+		});
+	}],
+	function(err,url){
+		callback(mkretstr(err,url,'gethttpsurl'));
+	});
 }

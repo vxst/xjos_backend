@@ -19,7 +19,7 @@ filedealer['zip']=function(filepath,to,callback){
 	etexec('unzip '+filepath+' -d '+to,callback);
 }
 filedealer['rar']=function(filepath,to,callback){
-	etexec('unrar x '+filepath+' '+to,callback);
+	etexec('unrar e '+filepath+' '+to,callback);
 }
 filedealer['7z']=function(filepath,to,callback){
 	etexec('7za x '+filepath+' -o'+to,callback);

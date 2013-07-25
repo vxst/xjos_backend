@@ -1,3 +1,5 @@
+var isok=require('../lib/isok').isok;
+
 exports.main=function(conn,handle,data,sql,callback){
 	isok(conn.uid,'common',sql,function(ct){
 		if(ct==0)return;

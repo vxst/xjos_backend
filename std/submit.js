@@ -33,6 +33,8 @@ exports.main=function(conn,handle,data,sql,callback,eventbus){//if over 10,use a
 			gettjdainfo(conn.uid,data,sql,callback);
 		}else if(handle==='getlanguage'){
 			getlanguage(conn.uid,data,sql,callback);
+		}else if(handle==='paySingleInfo'){
+			paySingleInfo(conn.uid,data,sql,callback);
 		}
 	});
 }
@@ -179,7 +181,7 @@ function getinfo(uid,data,sql,callback){
 		sql.getConnection(callback);
 	},
 	function(sqlc,cb){
-		sqlc.query('SELECT problem.problem_title,submit.* FROM xjos.submit JOIN xjos.problem ON xjos.problem.pid=xjos.submit.pid WHERE sid='+sqlc.escape(data)+' AND uid='+sqlc.escape(uid),
+		sqlc.query('SELECT problem.problem_title,submit.* FROM xjos.submit JOIN xjos.problem ON xjos.problem.pid=xjos.submit.pid WHERE sid='+sqlc.escape(data)+' AND uid='+sqlc.escape(uid)+' AND (submit.pid NOT IN (SELECT contest_problem.pid FROM xjos.contest JOIN xjos.user_contest ON contest.cid=user_contest.cid JOIN xjos.contest_problem ON contest_problem.cid=contest.cid WHERE contest.start_time<NOW() AND contest.end_time>NOW() AND uid='+sqlc.escape(uid)+') OR submit.sid IN (SELECT sid FROM xjos.contest_submit JOIN xjos.contest ON contest.cid=contest_submit.cid WHERE contest_submit.sid='+sqlc.escape(data)+' AND contest.start_time<NOW() AND contest.end_time>NOW())) ',
 		function(err,rows){
 			if(err){
 				sqlc.end();
@@ -313,9 +315,9 @@ function submit(uid,data,sql,callback,eventbus){//S2
 		});
 	},
 	function(sqlc,callback){
-	console.log('rehe');
 		var c=findcontest(uid,q.pid,sql,function(ret){
 			if(ret==null){
+				srvlog('A','Find Contest Mod Error');
 				callback('Submit ERR:Find Contest Module Error');
 				sqlc.end();
 			}else
@@ -328,6 +330,7 @@ function submit(uid,data,sql,callback,eventbus){//S2
 				sqlc.end();
 				callback('Submit SQL Insert Fail');
 			}else{
+				srvlog('D','Submit from uid:'+uid+' Inserted. SID:'+res.insertId);
 				callback(err,cidarr,sqlc,res.insertId);
 			}
 		});
@@ -536,6 +539,81 @@ function gettjdainfo_stgid(uid,data,sql,callback){//S1
 	function(err){
 		if(err)
 			srvlog('B','Get TJDAInfo'+err);
+	});
+}
+function sqlexecsingle(sqlc,str,callback){
+	sqlc.query(str,function(err,rows){
+		if(err){
+			sqlc.end();
+			srvlog('A','SQLErr:'+str+' ');
+			callback(err,'System error');
+		}else if(rows.length<1){
+			sqlc.end();
+			callback('No such obj','no such obj')
+		}else{
+			callback(err,sqlc,rows[0]);
+		}
+	});
+}
+function mkretstr(err,msg,me){
+	var retobj={};
+	if(err){
+		srvlog('B','Submit.'+me+'Error: '+err);
+		retobj['status']='error';
+	}else{
+		retobj['status']='ok';
+	}
+	retobj['data']=msg;
+	return JSON.stringify(retobj);
+}
+function paySingleInfo(uid,data,sql,callback){//S1
+	var sid=null;
+	if(isNaN(uid))return;
+	try{
+		var pobj=JSON.parse(data);
+		sid=parseInt(pobj.sid);
+	}catch(e){
+		callback('JSON Error');
+		return;
+	}
+	if(isNaN(sid)){
+		callback('JSON Error');
+		return;
+	}
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlexecsingle(sqlc,'SELECT gold FROM xjos.user WHERE uid='+sqlc.escape(uid),callback);
+	},
+	function(sqlc,gold,callback){
+		sqlexecsingle(sqlc,'SELECT uid FROM xjos.submit WHERE sid='+sqlc.escape(sid),function(err,sqlc,obj){
+			callback(err,sqlc,obj.uid,gold);
+		});
+	},
+	function(sqlc,auid,goldobj,callback){
+		var gold=goldobj.gold;
+		if(auid==uid){callback(null,sqlc,gold);return;}
+		if(gold<0){
+			callback('No money','You can\'t');
+			return;
+		}
+		gold=gold-0;
+		callback(null,sqlc,gold);
+	},
+	function(sqlc,gold,callback){
+		sqlexecsingle(sqlc,'SELECT * FROM xjos.submit WHERE sid='+sqlc.escape(sid),function(err,sqlc,obj){
+			callback(err,sqlc,obj,gold);
+		});
+	},
+	function(sqlc,subobj,gold,callback){
+		sqlc.query('UPDATE xjos.user SET gold='+sqlc.escape(gold)+' WHERE uid='+sqlc.escape(uid),function(err,ins){
+			callback(err,subobj);
+		});
+	}],
+	function(err,subobj){
+		callback(mkretstr(err,subobj,'paySingleInfo'));
 	});
 }
 
