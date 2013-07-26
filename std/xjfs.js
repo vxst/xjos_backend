@@ -56,9 +56,9 @@ function mkrandbase64str(len,callback){
 		callback(err,buf.toString('base64').replace('+','-').replace('/','_'));
 	});
 }
-mkrandbase64str(12,function(err,str){
+/*mkrandbase64str(12,function(err,str){
 	console.log(str);
-});
+});*/
 function mkretstr(err,msg,me){
 	var retobj={};
 	if(err){

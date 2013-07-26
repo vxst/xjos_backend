@@ -15,7 +15,7 @@ exports.main=function(conn,handle,data,sql,callback){
 	});
 	isok(conn.uid,'edit_user',sql,
 	function(ct){
-		if(ct==0)return;
+		if(ct==0&&(handle=='edit'||handle=='grantpriv'||handle=='deletepriv')){callback('err');return;}
 		if(handle==='edit'){
 			edit(conn.uid,data,sql,callback);
 		}else
@@ -219,8 +219,10 @@ function edit(uid,data,sql,callback){
 		cb();
 	}],
 	function(err){
-		if(err)
+		if(err){
 			console.log(err);
+			callback('err');
+		}
 	});
 }
 function editself(uid,data,sql,callback){
