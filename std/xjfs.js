@@ -777,8 +777,8 @@ function gethttpsurl(conn,data,sql,callback){
 
 	var nowplace=conn.dir.curarr[tobj['cur']].dir;
 	var unid=conn.dir.curarr[tobj['cur']].unid;
-	var expiretime=360000;
-	if(tobj.data!=undefined);
+	var expiretime=parseInt(tobj.data);
+	if(isNaN(expiretime))expiretime=360000;
 
 	var dir=getplace(nowplace,tobj.name);
 	if(!dir)callback(mkretstr(null,'Args Wrong','gethttpsurl'));
@@ -788,7 +788,7 @@ function gethttpsurl(conn,data,sql,callback){
 		sql.getConnection(callback);
 	},
 	function(sqlc,callback){
-		mkrandbase64str(6,function(err,str){
+		mkrandbase64str(9,function(err,str){
 			callback(err,str,sqlc);
 		});
 	},
@@ -803,7 +803,7 @@ function gethttpsurl(conn,data,sql,callback){
 		});
 	},
 	function(sqlc,uuid,hash,callback){
-		var insobj={'uuid':uuid,'hash':hash,'expire':new Date((new Date()).getTime()+360)};
+		var insobj={'uuid':uuid,'hash':hash,'expire':new Date((new Date()).getTime()+expiretime)};
 		sqlc.query('INSERT INTO xjos.gettable SET '+sqlc.escape(insobj),function(err,rows){
 			sqlc.end();
 			callback(err,commonvars.dynurl+'/'+uuid);
@@ -811,5 +811,49 @@ function gethttpsurl(conn,data,sql,callback){
 	}],
 	function(err,url){
 		callback(mkretstr(err,url,'gethttpsurl'));
+	});
+}
+function posthttpsurl(conn,data,sql,callback){
+	var tobj=explaininput(data,'posthttpsurl');
+
+	if(tobj==null)return;
+	if(!checkcur(conn,tobj.cur))return;
+
+	var nowplace=conn.dir.curarr[tobj['cur']].dir;
+	var unid=conn.dir.curarr[tobj['cur']].unid;
+	var expiretime=parseInt(tobj.data);
+	if(isNaN(expiretime))expiretime=360000;
+
+	var dir=getplace(nowplace,tobj.name);
+	if(!dir)callback(mkretstr('Args Wrong','Args Wrong','posthttpsurl'));
+
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		mkrandbase64str(9,function(err,str){
+			callback(err,str,sqlc);
+		});
+	},
+	function(uuid,sqlc,callback){
+		sqlc.query('SELECT hash FROM xjos.sfs_usrnode WHERE uid='+sqlc.escape(conn.uid)+' AND dir='+sqlc.escape(dir),function(err,rows){
+			if(err){
+				callback(err);return;
+			}else if(rows.length<1){
+				callback('No such row','No such file');
+			}else
+				callback(err,sqlc,uuid,rows[0].hash);
+		});
+	},
+	function(sqlc,uuid,hash,callback){
+		var insobj={'uuid':uuid,'hash':hash,'expire':new Date((new Date()).getTime()+expiretime)};
+		sqlc.query('INSERT INTO xjos.fsposttable SET '+sqlc.escape(insobj),function(err,rows){
+			sqlc.end();
+			callback(err,commonvars.dynurl+'/'+uuid);
+		});
+	}],
+	function(err,url){
+		callback(mkretstr(err,url,'posthttpsurl'));
 	});
 }
