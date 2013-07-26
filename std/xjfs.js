@@ -42,9 +42,45 @@ exports.main=function(conn,handle,data,sql,callback){//if over 10,use array.
 		postbase64(conn,data,sql,callback);
 	}else if(handle==='posthttpsurl'){
 		posthttpsurl(conn,data,sql,callback);
+	}else if(handle==='format'){//ok
+		format(conn,data,sql,callback);
+	}else if(handle==='mkdefault'){
+		mkdefault(conn,data,sql,callback);
 	}
 }
 var limitvars={'maxdirlen':512};
+
+function mkdefault(conn,data,sql,callback){
+	async.waterfall([
+	function(callback){
+		getcur(conn,'',sql,function(val){
+			callback(null,JSON.parse(val).data);
+		});
+	},
+	function(cur,callback){
+		mkdir(conn,JSON.stringify({'name':'System','cur':cur}),sql,function(val){
+			callback(null,cur);
+		});
+	},
+	function(cur,callback){
+		mkdir(conn,JSON.stringify({'name':'Documents','cur':cur}),sql,function(val){
+			callback(null,cur);
+		});
+	},
+	function(cur,callback){
+		mkdir(conn,JSON.stringify({'name':'Programs','cur':cur}),sql,function(val){
+			callback(null,cur);
+		});
+	},
+	function(cur,callback){
+		mkdir(conn,JSON.stringify({'name':'Muiltmedia','cur':cur}),sql,function(val){
+			callback(null,'finished');
+		});
+	}],
+	function(err,msg){
+		callback(mkretstr(err,msg,'mkdefault'));
+	});
+}
 
 function mkrandstr(len,callback){//len bytes of random
 	crypto.pseudoRandomBytes(len,function(err,buf){
@@ -80,6 +116,7 @@ function getfatherdir(dir){
 			return dir.substr(0,i+1);
 }
 function getplace(dir,reldir){
+	if(reldir.length==0)return dir;
 	if(reldir.length>limitvars.maxdirlen)return false;
 	if(dir.length>limitvars.maxdirlen)return false;
 	if(reldir[0]=='/'&&reldir[1]=='/')return false;
@@ -110,6 +147,35 @@ function checkname(name){
 		if(name[i]=='/'||name[i]=='*'||name[i]=='?')return false;
 	return true;
 }
+function format(conn,data,sql,callback){
+	if(isNaN(parseInt(conn.uid)))return;
+	async.waterfall([
+	function(callback){
+		sql.getConnection(callback);
+	},
+	function(sqlc,callback){
+		sqlc.query('DELETE FROM xjos.sfs_usrnode WHERE uid='+sqlc.escape(conn.uid),
+		function(err,rows){
+			if(err){
+				callback(err,'Format Error');
+				sqlc.end();
+			}else callback(err,'Deleting',sqlc);
+		});
+	},
+	function(msg,sqlc,callback){
+		var obj={'uid':conn.uid,'dir':'/','filetype':'dir','hash':'','fatherunid':0,'name':'/','metadata':JSON.stringify({'createTime':new Date(),'modifyTime':new Date(),'visitTime':new Date(),'icon':'','text':''})}
+		sqlc.query('INSERT INTO xjos.sfs_usrnode SET '+sqlc.escape(obj),function(err,rows){
+			sqlc.end();
+			if(err)
+				callback(err,'Format Error');
+			else
+				callback(err,'Format OK');
+		});
+	}],
+	function(err,msg){
+		callback(mkretstr(err,msg,'format'));
+	});
+}
 function getcur(conn,data,sql,callback){
 	var retobj={},cur;
 	if(conn.dir===undefined)conn.dir={};
@@ -124,10 +190,13 @@ function getcur(conn,data,sql,callback){
 	function(sqlc,callback){
 		sqlc.query('SELECT unid FROM xjos.sfs_usrnode WHERE dir="/"',function(err,rows){
 			if(err){srvlog('A','SQL Error');sqlc.end();callback(err,'Error');return;}
-			else{ 
+			else if(rows.length<1){
+				callback('Not formated','Not formated yet');
+				sqlc.end();
+			}else{ 
 				conn.dir.curarr[cur]={'dir':'/','unid':rows[0].unid,'lock':false};
 				sqlc.end();
-				callback(null,JSON.retobj);
+				callback(null,cur);
 			}
 		});
 	}],
@@ -160,7 +229,7 @@ function cd(conn,data,sql,callback){
 
 	if(tobj==null)return;
 	if(!checkcur(conn,tobj.cur))return;
-	if(!checkname(tobj.name))return;
+//	if(!checkname(tobj.name))return;
 
 	conn.dir.curarr[tobj['cur']].lock=true;
 
@@ -526,15 +595,29 @@ function touch(conn,data,sql,callback){
 		sql.getConnection(callback);
 	},
 	function(sqlc,callback){
+		sqlc.query('SELECT count(*) AS ct FROM xjos.sfs_usrnode WHERE dir='+sqlc.escape(getplace(nowplace,tobj.name))+' AND uid='+sqlc.escape(conn.uid),
+		function(err,rows){
+			if(err){
+				sqlc.end();
+				callback(err,'err');
+			}else if(rows[0].ct!=0){
+				sqlc.end();
+				callback('Add file error','file has already exists');
+			}else{
+				callback(err,sqlc);
+			}
+		});
+	},
+	function(sqlc,callback){
 		var insobj={'dir':getplace(nowplace,tobj.name),'filetype':'plain','hash':'47DEQpj8HBSa-_TI','uid':conn.uid,'fatherunid':unid,'name':tobj.name,'size':0};
 		sqlc.query("INSERT INTO xjos.sfs_usrnode SET "+sqlc.escape(insobj),function(err,row){
-			callback(err);
+			callback(err,'touch finished');
 			sqlc.end();
 		});
 	}],
-	function(err){
+	function(err,msg){
 		conn.dir.curarr[tobj['cur']].lock=false;
-		callback(mkretstr(err,'touch finished','touch'));
+		callback(mkretstr(err,msg,'touch'));
 	});
 }
 function pwd(conn,data,sql,callback){
@@ -562,15 +645,29 @@ function mkdir(conn,data,sql,callback){
 		sql.getConnection(callback);
 	},
 	function(sqlc,callback){
+		sqlc.query('SELECT count(*) AS ct FROm xjos.sfs_usrnode WHERE dir='+sqlc.escape(getplace(nowplace,tobj.name))+' AND uid='+sqlc.escape(conn.uid),
+		function(err,rows){
+			if(err){
+				sqlc.end();
+				callback(err,'err');
+			}else if(rows[0].ct!=0){
+				sqlc.end();
+				callback('Added dir','dir has already exists');
+			}else{
+				callback(err,sqlc);
+			}
+		});
+	},
+	function(sqlc,callback){
 		var insobj={'dir':getplace(nowplace,tobj.name),'filetype':'dir','hash':'','uid':conn.uid,'fatherunid':unid,'name':tobj.name,'size':0};
 		sqlc.query("INSERT INTO xjos.sfs_usrnode SET "+sqlc.escape(insobj),function(err,row){
-			callback(err);
+			callback(err,'mkdir finished');
 			sqlc.end();
 		});
 	}],
-	function(err){
+	function(err,msg){
 		conn.dir.curarr[tobj['cur']].lock=false;
-		callback(mkretstr(err,'mkdir finished','mkdir'));
+		callback(mkretstr(err,msg,'mkdir'));
 	});
 }
 function gettotalcount(conn,data,sql,callback){

@@ -22,7 +22,7 @@ handle['discuss']=require('./std/discuss').main;
 handle['special']=require('./std/special').main;
 handle['news']=require('./std/news').main;
 handle['app']=require('./std/app').main;
-//handle['xjfs']=require('./std/xjfs').main;
+handle['xjfs']=require('./std/xjfs').main;
 
 function checkstr(wsstr){
 	var _counterz=-1,_counterp=0;
@@ -86,6 +86,12 @@ var dohandle=function(wsstr,conn,mysql,eventbus){
 			return;
 		}
 		var h=tobj.order.split('.',2);
+		
+		if(h[0]==undefined||h[1]==undefined){			
+			deflatesend(t[0]+'_@failed_XJPipeline Error:Happy Birthday!',conn);
+			srvlog('B','Websocket Handler Error:'+wsstr+' IP:'+conn.ip);
+			return;
+		}
 //		if(t[0]==undefined||h[0]==undefined||h[1]==undefined){			
 			//conn.sendUTF(t[0]+'_@failed_XJPipeline Error:Happy Birthday!');
 //			deflatesend(t[0]+'_@failed_XJPipeline Error:Happy Birthday!',conn);
