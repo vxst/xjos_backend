@@ -771,13 +771,17 @@ function postbase64(conn,data,sql,callback){
 	},
 	function(str,callback){
 		var tmpname=commonvars.baseurl+'/xjfsfiles/tmp/'+str;
-		fs.writeFile(tmpname,new Buffer(tobj.data,'base64'),function(err){
-			callback(tmpname);
-		});
+		try{
+			fs.writeFile(tmpname,new Buffer(tobj.data,'base64'),function(err){
+				callback(tmpname);
+			});
+		}catch(e){
+			callback(e,'Base64 Error');
+		}
 	},
 	function(tmpname,callback){
 		fs.stat(tmpname,function(err,stat){
-			if(err)callback(err,'XJFS Err');
+			if(err) callback(err,'XJFS Err');
 			else callback(err,tmpname,stat.size);
 		});
 	},
