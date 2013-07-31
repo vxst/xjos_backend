@@ -26,8 +26,8 @@ exports.start=function(server,sqlpool,wshandler,eventbus,simpledb){
 		autoAcceptConnections: false, //false is needed for security reason in the protocol
 		keepaliveInterval:30000,
 		fragmentationThreshold:64*1024,
-		maxReceivedMessageSize:16*1024*1024,
-		maxReceivedFrameSize:1024*1024*16
+		maxReceivedMessageSize:4*1024*1024,
+		maxReceivedFrameSize:4*1024*1024
 	});
 	var connectionpool=new Array();//,counter=0;
 	simpledb.connectionCountDB={};

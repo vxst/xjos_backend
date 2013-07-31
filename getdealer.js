@@ -2,12 +2,12 @@ var fs = require('fs'),
 	async =	require('async');
 
 function findgetpath(path,sql,callback){
-	if(path.length!=33)return;
+	if(path.length!=12)return;
 	sql.getConnection(function(err,sqlc){
 		if(err){
 			console.log('ERROR!');
 		}else{
-			sqlc.query('SELECT * from xjos.gettable WHERE uuid='+sqlc.escape(path.substr(1))+' AND expire>NOW()',
+			sqlc.query('SELECT * from xjos.gettable WHERE uuid='+sqlc.escape(path)+' AND expire>'+(new Date()).getTime(),
 			function(err,rows){
 				if(err){
 					console.log('ERROR!');
@@ -28,7 +28,7 @@ exports.main=function(path,response,sql,rawreq,callback){
 			callback(err);
 			return;
 		}
-		var stream=fs.createReadStream('files/'+hash,{'bufferSize':64*1024}).pipe(response);
+		var stream=fs.createReadStream('/home/sttc/nodeserver/xjfsfiles/'+hash.substr(0,2)+'/'+hash,{'bufferSize':64*1024}).pipe(response);
 /*		stream.on('open',function(){
 			stream.pipe(response);
 		});

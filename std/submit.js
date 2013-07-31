@@ -131,7 +131,7 @@ function list(uid,data,sql,callback){//S1
 		sql.getConnection(callback);
 	},
 	function(sqlc,callback){
-		sqlc.query('SELECT sid,xjos.problem.pid,problem_title,language,datetime,status,grade,ptype FROM xjos.submit INNER JOIN xjos.problem ON xjos.problem.pid=xjos.submit.pid WHERE uid='+sqlc.escape(uid)+' ORDER BY sid ASC',
+		sqlc.query('SELECT sid,xjos.problem.pid,problem_title,language,datetime,status,grade,ptype FROM xjos.submit JOIN xjos.problem ON xjos.problem.pid=xjos.submit.pid WHERE uid='+sqlc.escape(uid)+' ORDER BY sid ASC',
 		function(err,rows){
 			if(err){
 				console.log('ERR:STD-SUBMIT-LIST:'+err);
@@ -181,7 +181,7 @@ function getinfo(uid,data,sql,callback){
 		sql.getConnection(callback);
 	},
 	function(sqlc,cb){
-		sqlc.query('SELECT problem.problem_title,submit.* FROM xjos.submit JOIN xjos.problem ON xjos.problem.pid=xjos.submit.pid WHERE sid='+sqlc.escape(data)+' AND uid='+sqlc.escape(uid)+' AND (submit.pid NOT IN (SELECT contest_problem.pid FROM xjos.contest JOIN xjos.user_contest ON contest.cid=user_contest.cid JOIN xjos.contest_problem ON contest_problem.cid=contest.cid WHERE contest.start_time<NOW() AND contest.end_time>NOW() AND uid='+sqlc.escape(uid)+') OR submit.sid IN (SELECT sid FROM xjos.contest_submit JOIN xjos.contest ON contest.cid=contest_submit.cid WHERE contest_submit.sid='+sqlc.escape(data)+' AND contest.start_time<NOW() AND contest.end_time>NOW())) ',
+		sqlc.query('SELECT problem.problem_title,submit.* FROM xjos.submit JOIN xjos.problem ON xjos.problem.pid=xjos.submit.pid WHERE sid='+sqlc.escape(data)+' AND uid='+sqlc.escape(uid)+' AND (submit.pid NOT IN (SELECT contest_problem.pid FROM xjos.contest JOIN xjos.user_contest ON contest.cid=user_contest.cid JOIN xjos.contest_problem ON contest_problem.cid=contest.cid WHERE contest.start_time<'+sqlc.escape(new Date())+' AND contest.end_time>'+sqlc.escape(new Date())+' AND uid='+sqlc.escape(uid)+') OR submit.sid IN (SELECT sid FROM xjos.contest_submit JOIN xjos.contest ON contest.cid=contest_submit.cid WHERE contest_submit.sid='+sqlc.escape(data)+' AND contest.start_time<'+sqlc.escape(new Date())+' AND contest.end_time>'+sqlc.escape(new Date())+')) ',
 		function(err,rows){
 			if(err){
 				sqlc.end();
@@ -207,7 +207,7 @@ function getinfo(uid,data,sql,callback){
 		});
 	},
 	function(sqlc,cuteobj,cb){
-		sqlc.query('SELECT sid FROM xjos.user_contest JOIN xjos.contest_submit ON contest_submit.cid=user_contest.cid JOIN xjos.contest ON contest.cid=user_contest.cid WHERE uid='+sqlc.escape(uid)+' AND ((user_contest.start_time<NOW() AND user_contest.end_time> NOW() AND user_contest.type="virtual") OR (contest.start_time<NOW() AND contest.end_time>NOW() AND user_contest.type="real")) ORDER BY sid ASC',
+		sqlc.query('SELECT sid FROM xjos.contest JOIN xjos.contest_submit ON contest_submit.cid=contest.cid JOIN xjos.user_contest ON contest.cid=user_contest.cid WHERE uid='+sqlc.escape(uid)+' AND ((user_contest.start_time<'+sqlc.escape(new Date())+' AND user_contest.end_time>'+sqlc.escape(new Date())+' AND user_contest.type="virtual") OR (contest.start_time<'+sqlc.escape(new Date())+' AND contest.end_time>'+sqlc.escape(new Date())+' AND user_contest.type="real")) ORDER BY sid ASC',
 		function(err,rows){
 			if(err){
 				console.log(err);

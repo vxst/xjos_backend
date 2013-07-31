@@ -93,7 +93,7 @@ function view(uid,data,sql,callback){//FIXME:Not Look Like good
 		sql.getConnection(callback);
 	},
 	function(sqlc,callback){
-		libuser.getlevel(uid,sql,function(sqlc,callback){
+		libuser.getlevelc(uid,sqlc,function(sqlc,callback){
 			return function(level){
 				callback(null,sqlc,level);
 			}
@@ -139,8 +139,8 @@ function view(uid,data,sql,callback){//FIXME:Not Look Like good
 		cb();
 	}],
 	function(err){
-//		if(err)
-//			console.log('VIEW ERROR:'+err);
+		if(err)
+			console.log('VIEW ERROR:'+err);
 		return;
 	});
 }

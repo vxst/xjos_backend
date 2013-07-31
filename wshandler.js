@@ -106,11 +106,20 @@ var dohandle=function(wsstr,conn,mysql,eventbus){
 			deflatesend(tobj.id+'_@failed_XJPipeline Error:Handle Of Service '+h[0]+' is undefined.',conn);
 		}else{
 	//		console.log("FH:"+h[0]);
-			handle[h[0]](conn,h[1],dt,mysql,function(id){
+			handle[h[0]](conn,h[1],dt,mysql,function(id,tn,order){
 				return function(res){
+					if((new Date()).getTime()-tn>100){
+						srvlog('A','ExtrSlow Query:'+order+' Time:'+((new Date()).getTime()-tn));
+					}else
+					if((new Date()).getTime()-tn>50){
+						srvlog('B','Slow Query:'+order+' Time:'+((new Date()).getTime()-tn));
+					}else
+					if((new Date()).getTime()-tn>25){
+						srvlog('C','Notfast Query:'+order+' Time:'+((new Date()).getTime()-tn));
+					}
 					deflatesend(JSON.stringify({'id':id,'data':res}),conn);
 				}
-			}(tobj.id),eventbus);
+			}(tobj.id,(new Date()).getTime(),tobj.order),eventbus);
 		}
 //	}catch(e){
 //		console.log('Error!-'+JSON.stringify(e));

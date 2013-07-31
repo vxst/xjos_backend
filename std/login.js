@@ -45,7 +45,7 @@ function loginwtoken(conn,data,sql,callback){
 
 	sql.getConnection(function(err,sqlconn){
 		if(err)return;
-		sqlconn.query('SELECT uid FROM xjos.login_token WHERE ip='+sqlconn.escape(myip)+' AND token='+sqlconn.escape(mytoken)+'AND expire>NOW()',
+		sqlconn.query('SELECT uid FROM xjos.login_token WHERE ip='+sqlconn.escape(myip)+' AND token='+sqlconn.escape(mytoken)+' AND expire>'+sqlconn.escape(new Date()),
 			function(err,rows){
 				sqlconn.end();
 				if(rows.length>=1){
@@ -85,23 +85,28 @@ function trylogin(conn,data,sql,callback){
 						return;
 					}
 					var salt=rows[0]['password_salt'],pwd=rows[0]['password'],uid=rows[0]['uid'];
-					sqlconn.end();
-					verifykey(saneobj.password,salt,function(dk){callback(null,uid,pwd,dk);});
+					verifykey(saneobj.password,salt,function(dk){callback(null,uid,pwd,dk,sqlconn);});
 				});
 			});
 		},
-		function(uid,pass,dpass,callback){
-			if(pass==dpass){
-				gentoken(uid,conn.remoteAddress,sql,function(token){callback(null,token);});
-			}else{
-				callback('USER_PASSWORD_NOT_MATCH',null);
-			}
+		function(uid,pass,dpass,sqlconn,callback){
+			var insobj={'ip':conn.ip,'uid':uid,'time':new Date(),'isok':(pass==dpass)};
+			sqlconn.query('INSERT INTO xjos.login_log SET '+sqlconn.escape(insobj),
+			function(err,rows){
+				sqlconn.end();
+				if(pass==dpass){
+					gentoken(uid,conn.remoteAddress,sql,function(token){callback(null,token);});
+				}else{
+					callback('USER_PASSWORD_NOT_MATCH',null);
+				}
+			});
 		}],
 		function(err,info){
 			if(err!==null)
 				callback(err);
-			else
+			else{
 				callback(info);
+			}
 		});
 }
 
