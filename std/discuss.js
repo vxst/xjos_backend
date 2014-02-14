@@ -264,7 +264,7 @@ function addboard(uid,data,sql,callback){
 		});
 	}],
 	function(err,msg){
-		callback(mkretstr(err,msg,'listboard'));
+		callback(mkretstr(err,msg,'addboard'));
 	});
 }
 function listboard(uid,data,sql,callback){
@@ -315,9 +315,13 @@ function gettopics(uid,data,sql,callback){
 		sql.getConnection(callback);
 	},
 	function(sqlc,callback){
-		sqlc.query('SELECT tid,title,content,user.uid,username,date,lastreplytime,isnews FROM xjos.discuss_topics JOIN xjos.user ON user.uid=discuss_topics.uid WHERE grandfathertid=0 ORDER BY lastreplytime DESC',function(err,rows){
-			callback(err,rows);
+		sqlc.query('SELECT tid,title,content,childrencount,user.uid,username,date,lastreplytime,isnews FROM xjos.discuss_topics JOIN xjos.user ON user.uid=discuss_topics.uid LEFT JOIN (SELECT count(*) AS childrencount,grandfathertid FROM xjos.discuss_topics WHERE grandfathertid!=0 GROUP BY grandfathertid) AS childcttbl ON childcttbl.grandfathertid=discuss_topics.tid WHERE discuss_topics.grandfathertid=0 ORDER BY lastreplytime DESC',function(err,rows){
 			sqlc.end();
+			for(var i=0;i<rows.length;i++){
+				if(rows[i].childrencount==null)
+					rows[i].childrencount=0;
+			}
+			callback(err,rows);
 		});
 	},
 	function(rows,cb){
@@ -348,16 +352,20 @@ function addtopic(uid,data,sql,callback){
 			function(sqlc,callback){
 				sqlc.query('INSERT INTO xjos.discuss_topics SET '+sqlc.escape(intobj),
 				function(err,rows){
-					callback(err,sqlc);
 					sqlc.end();
+					if(err){
+						callback(err);
+						return;
+					}
+					callback(err,rows.insertId);
 				});
 			}],
-			function(err){
+			function(err,id){
 				if(err){
 					console.log('Discuss.AddTopic:ERR:'+err);
 					callback('err');
 				}else{
-					callback('ok');
+					callback(JSON.stringify({'id':id,'status':'ok'}));
 				}
 			});
 		}else{

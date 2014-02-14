@@ -6,6 +6,7 @@ exports.start=function(eventbus){
 		});
 		c.on('data',function(s){
 			s=s.toString();
+			console.log("REC:"+s);
 			if(s[0]=='P'){
 				s=s.slice(1);
 				var isok=false,count=0;
